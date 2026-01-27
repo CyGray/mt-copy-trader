@@ -16,6 +16,10 @@
         "/^sudo apt install -y docker\\.io docker-compose$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^sudo usermod -aG docker botuser$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

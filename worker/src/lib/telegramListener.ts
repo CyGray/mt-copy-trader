@@ -15,6 +15,12 @@ let cachedAllowedChatIds: string[] | null = null;
 const SETTINGS_DOC_PATH = 'settings/default';
 const SETTINGS_TTL_MS = 30_000;
 
+function isParseError(
+  result: ReturnType<typeof parseTelegramSignal>,
+): result is { ok: false; error: string } {
+  return result.ok === false;
+}
+
 function hashText(text: string): string {
   return crypto.createHash('sha256').update(text).digest('hex');
 }
@@ -101,7 +107,14 @@ async function logTelegramMessage(
   const existing = await docRef.get();
   if (existing.exists) return;
 
-  const parsed = text ? parseTelegramSignal(text) : { ok: false, error: 'empty_message' };
+  const parsed: ReturnType<typeof parseTelegramSignal> = text
+    ? parseTelegramSignal(text)
+    : { ok: false, error: 'empty_message' };
+
+  let parseError: string | null = null;
+  if (isParseError(parsed)) {
+    parseError = parsed.error;
+  }
 
   await docRef.set({
     chat_id: chatId,
@@ -112,20 +125,20 @@ async function logTelegramMessage(
     date: messageDate ? messageDate.toISOString() : null,
     edit_date: editDate ? editDate.toISOString() : null,
     parsed_ok: parsed.ok,
-    parsed: parsed.ok && 'signal' in parsed ? parsed.signal : null,
-    parse_error: parsed.ok ? null : parsed.error,
+    parsed: parsed.ok ? parsed.signal : null,
+    parse_error: parseError,
     timestamp: new Date().toISOString(),
   });
 
-  if (!parsed.ok && text) {
+  if (isParseError(parsed) && text) {
     await writeSystemLog('info', 'telegram_listener', 'signal_parse_failed', {
       chatId,
       messageId,
-      error: parsed.error,
+      error: parseError ?? 'unknown_error',
     });
   }
 
-  if (parsed.ok && 'signal' in parsed && parsed.signal) {
+  if (parsed.ok && parsed.signal) {
     await writeSystemLog('info', 'telegram_listener', 'signal_parsed', {
       chatId,
       messageId,

@@ -5,6 +5,24 @@ import { firebaseAuth, firestoreDb } from './firebaseClient';
 
 export type UserRole = 'admin' | 'viewer' | 'unknown';
 
+async function fetchRoleFromApi(token: string): Promise<UserRole | null> {
+  try {
+    const response = await fetch('/api/admin/role', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json()) as { role?: UserRole };
+    if (data.role === 'admin' || data.role === 'viewer') return data.role;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>('unknown');
@@ -32,14 +50,31 @@ export function useAuth() {
         return;
       }
 
-      try {
-        const userRef = doc(firestoreDb, 'users', nextUser.uid);
-        const snap = await getDoc(userRef);
-        setRole((snap.data()?.role as UserRole) ?? 'viewer');
-      } catch (e) {
-        console.error('Failed to fetch user role:', e);
-        setRole('viewer');
+      let resolvedRole: UserRole | null = null;
+
+      if (firestoreDb) {
+        try {
+          const userRef = doc(firestoreDb, 'users', nextUser.uid);
+          const snap = await getDoc(userRef);
+          const role = snap.data()?.role as UserRole | undefined;
+          if (role === 'admin' || role === 'viewer') {
+            resolvedRole = role;
+          }
+        } catch (e) {
+          console.error('Failed to fetch user role from Firestore:', e);
+        }
       }
+
+      if (!resolvedRole) {
+        try {
+          const token = await nextUser.getIdToken();
+          resolvedRole = await fetchRoleFromApi(token);
+        } catch (e) {
+          console.error('Failed to fetch user role from API:', e);
+        }
+      }
+
+      setRole(resolvedRole ?? 'viewer');
       setLoading(false);
     });
 
