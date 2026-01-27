@@ -1,0 +1,21 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "npm install": true,
+        "Get-Process": true,
+        "/^node -p \"require\\('eslint/package\\.json'\\)\\.version\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "Test-Path": true,
+        "npm view": true,
+        "docker compose": true,
+        "/^sudo apt update; sudo apt install -y docker\\.io docker-compose-plugin$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^sudo apt install -y docker\\.io docker-compose$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

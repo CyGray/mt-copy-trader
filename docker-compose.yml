@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  web:
+    build:
+      context: ./web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    depends_on:
+      - worker
+
+  worker:
+    build:
+      context: ./worker
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - telegram_session:/data/telegram
+
+volumes:
+  telegram_session:
+    driver: local
