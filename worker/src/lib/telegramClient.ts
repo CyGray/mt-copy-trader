@@ -17,6 +17,8 @@ let status: TelegramStatus = 'disconnected';
 let lastError: string | null = null;
 let reauthRequired = false;
 let phoneNumber: string | null = null;
+let displayName: string | null = null;
+let cachedDisplayNameAt = 0;
 let codeResolver: Resolver | null = null;
 let passwordResolver: Resolver | null = null;
 
@@ -124,6 +126,13 @@ export async function startTelegramLogin(phone: string): Promise<void> {
       saveTelegramSession(sessionString);
       status = 'authorized';
       reauthRequired = false;
+      void nextClient.getMe().then((me) => {
+        const firstName = me?.firstName ?? '';
+        const lastName = me?.lastName ?? '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        displayName = fullName || me?.username || phoneNumber;
+        cachedDisplayNameAt = Date.now();
+      });
     })
     .catch((err) => {
       void recordError('start_login', err);
@@ -149,6 +158,7 @@ export function submitTelegramPassword(password: string): void {
 export async function getTelegramStatus(): Promise<{
   status: TelegramStatus;
   phone: string | null;
+  displayName: string | null;
   lastError: string | null;
   reauthRequired: boolean;
 }> {
@@ -167,7 +177,23 @@ export async function getTelegramStatus(): Promise<{
     }
   }
 
-  return { status, phone: phoneNumber, lastError, reauthRequired };
+  if (status === 'authorized') {
+    const now = Date.now();
+    if (!displayName || now - cachedDisplayNameAt > 60_000) {
+      try {
+        const me = await ensureClient().then((nextClient) => nextClient.getMe());
+        const firstName = me?.firstName ?? '';
+        const lastName = me?.lastName ?? '';
+        const fullName = `${firstName} ${lastName}`.trim();
+        displayName = fullName || me?.username || phoneNumber;
+        cachedDisplayNameAt = now;
+      } catch {
+        // Ignore display name fetch errors
+      }
+    }
+  }
+
+  return { status, phone: phoneNumber, displayName, lastError, reauthRequired };
 }
 
 export async function logoutTelegram(): Promise<void> {
@@ -190,6 +216,8 @@ export async function logoutTelegram(): Promise<void> {
   }
   client = null;
   phoneNumber = null;
+  displayName = null;
+  cachedDisplayNameAt = 0;
   lastError = null;
   reauthRequired = false;
   status = 'disconnected';

@@ -11,6 +11,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { formatTimestamp } from '@/lib/formatTimestamp';
 
 const PAGE_SIZE = 50;
 
@@ -195,7 +196,7 @@ export default function TradeHistoryPage() {
                     {trade.state ?? '—'}
                   </td>
                   <td className="px-4 py-3 text-sm text-marine-navy/60">
-                    {trade.created_at ?? '—'}
+                    {formatTimestamp(trade.created_at) ?? '—'}
                   </td>
                 </tr>
               ))}
@@ -225,7 +226,7 @@ export default function TradeHistoryPage() {
                         {event.event_type ?? 'event'}
                       </p>
                       <p className="text-sm text-marine-navy/80">
-                        {event.timestamp ?? '—'}
+                        {formatTimestamp(event.timestamp) ?? '—'}
                       </p>
                     </li>
                   ))}
