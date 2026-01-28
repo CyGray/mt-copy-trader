@@ -10,6 +10,7 @@ const SETTINGS_DOC = 'settings/default';
 
 type TelegramSettings = {
   allowed_chat_ids?: string[];
+  chat_id_aliases?: Record<string, string>;
 };
 
 type TradingSettings = {
@@ -34,6 +35,10 @@ export default function SettingsPage() {
   const { role, loading: authLoading } = useAuth();
   const [chatIds, setChatIds] = useState<string[]>([]);
   const [newChatId, setNewChatId] = useState('');
+  const [chatAliases, setChatAliases] = useState<Record<string, string>>({});
+  const [chatAliasDrafts, setChatAliasDrafts] = useState<Record<string, string>>({});
+  const [chatAliasSaved, setChatAliasSaved] = useState<Record<string, boolean>>({});
+  const [settingsLoading, setSettingsLoading] = useState(true);
   const [riskMode, setRiskMode] = useState<'PERCENT_AVAILABLE_MARGIN' | 'FIXED_USDT'>(
     'FIXED_USDT',
   );
@@ -55,9 +60,11 @@ export default function SettingsPage() {
   const loadSettings = async () => {
     if (!firestoreDb) {
       setError('Firestore not initialized.');
+      setSettingsLoading(false);
       return;
     }
     setLoading(true);
+    setSettingsLoading(true);
     setError(null);
     setSaved(false);
 
@@ -65,10 +72,16 @@ export default function SettingsPage() {
       const ref = doc(firestoreDb, SETTINGS_DOC);
       const snap = await getDoc(ref);
       const data = snap.data() as SettingsDoc | undefined;
-      const ids = data?.telegram?.allowed_chat_ids ?? [];
+      const ids = (data?.telegram?.allowed_chat_ids ?? [])
+        .map((value) => String(value).trim())
+        .filter(Boolean);
+      const aliases = data?.telegram?.chat_id_aliases ?? {};
       const trading = data?.trading ?? {};
 
       setChatIds(ids);
+      setChatAliases(aliases);
+      setChatAliasDrafts(aliases);
+      setChatAliasSaved({});
       setRiskMode(trading.risk_mode ?? 'FIXED_USDT');
       setRiskValue(String(trading.risk_value ?? 20));
       setMaxSignalDelay(String(trading.max_signal_delay_sec ?? 120));
@@ -83,6 +96,7 @@ export default function SettingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to load settings.');
     } finally {
       setLoading(false);
+      setSettingsLoading(false);
     }
   };
 
@@ -96,10 +110,14 @@ export default function SettingsPage() {
     setSaved(false);
 
     try {
+      const sanitizedChatIds = chatIds.map((id) => id.trim()).filter(Boolean);
+      if (sanitizedChatIds.length !== chatIds.length) {
+        setChatIds(sanitizedChatIds);
+      }
       await setDoc(
         doc(firestoreDb, SETTINGS_DOC),
         {
-          telegram: { allowed_chat_ids: chatIds },
+          telegram: { allowed_chat_ids: sanitizedChatIds, chat_id_aliases: chatAliases },
           trading: {
             risk_mode: riskMode,
             risk_value: Number(riskValue),
@@ -137,15 +155,80 @@ export default function SettingsPage() {
       return;
     }
     setChatIds((prev) => [...prev, trimmed]);
+    setChatAliasDrafts((prev) => ({ ...prev, [trimmed]: prev[trimmed] ?? '' }));
+    setChatAliasSaved((prev) => ({ ...prev, [trimmed]: false }));
     setNewChatId('');
   };
 
   const handleUpdateChatId = (index: number, value: string) => {
-    setChatIds((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+    setChatIds((prev) => {
+      const oldId = prev[index];
+      const next = prev.map((item, idx) => (idx === index ? value : item));
+      if (oldId && oldId !== value) {
+        setChatAliases((current) => {
+          const updated = { ...current };
+          const alias = updated[oldId];
+          if (alias !== undefined) {
+            delete updated[oldId];
+            if (value) updated[value] = alias;
+          }
+          return updated;
+        });
+        setChatAliasDrafts((current) => {
+          const updated = { ...current };
+          const alias = updated[oldId];
+          if (alias !== undefined) {
+            delete updated[oldId];
+            if (value) updated[value] = alias;
+          }
+          return updated;
+        });
+      }
+      return next;
+    });
   };
 
   const handleRemoveChatId = (index: number) => {
+    const removed = chatIds[index];
     setChatIds((prev) => prev.filter((_, idx) => idx !== index));
+    if (removed) {
+      setChatAliases((prev) => {
+        const updated = { ...prev };
+        delete updated[removed];
+        return updated;
+      });
+      setChatAliasDrafts((prev) => {
+        const updated = { ...prev };
+        delete updated[removed];
+        return updated;
+      });
+      setChatAliasSaved((prev) => {
+        const updated = { ...prev };
+        delete updated[removed];
+        return updated;
+      });
+    }
+  };
+
+  const handleAliasDraftChange = (chatId: string, value: string) => {
+    setChatAliasDrafts((prev) => ({ ...prev, [chatId]: value }));
+  };
+
+  const handleAliasSave = (chatId: string) => {
+    const alias = (chatAliasDrafts[chatId] ?? '').trim();
+    setChatAliases((prev) => {
+      const updated = { ...prev };
+      if (alias) {
+        updated[chatId] = alias;
+      } else {
+        delete updated[chatId];
+      }
+      return updated;
+    });
+    setChatAliasSaved((prev) => ({ ...prev, [chatId]: true }));
+    setTimeout(() => {
+      setChatAliasSaved((prev) => ({ ...prev, [chatId]: false }));
+    }, 1500);
   };
 
   return (
@@ -290,7 +373,8 @@ export default function SettingsPage() {
             <h2 className="text-lg font-semibold text-marine-navy">Telegram access</h2>
             <label className="mt-4 text-sm text-marine-navy/70">Allowed chat IDs</label>
             <p className="mt-1 text-xs text-marine-navy/60">
-              Add multiple chat IDs to limit which Telegram channels are processed.
+              Add multiple chat IDs to limit which Telegram channels are processed. Optionally map
+              a label to each chat ID.
             </p>
             <div className="mt-3 rounded-xl border border-dashed border-marine-navy/20 bg-marine-mist p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-marine-navy/60">
@@ -316,7 +400,9 @@ export default function SettingsPage() {
             <div className="mt-4 rounded-xl border border-marine-navy/10 bg-white">
               {chatIds.length === 0 ? (
                 <div className="px-4 py-6 text-sm text-marine-navy/60">
-                  No chat IDs configured. The worker will listen to all messages.
+                  {settingsLoading
+                    ? 'Syncing settings...'
+                    : 'No chat IDs configured. The worker will listen to all messages.'}
                 </div>
               ) : (
                 <ul className="divide-y divide-marine-navy/10">
@@ -328,6 +414,20 @@ export default function SettingsPage() {
                         onChange={(event) => handleUpdateChatId(index, event.target.value)}
                         disabled={disableControls}
                       />
+                      <input
+                        className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
+                        placeholder="Label (optional)"
+                        value={chatAliasDrafts[chatId] ?? ''}
+                        onChange={(event) => handleAliasDraftChange(chatId, event.target.value)}
+                        disabled={disableControls}
+                      />
+                      <button
+                        className="rounded-full border border-marine-navy/20 px-3 py-2 text-xs text-marine-navy min-w-[64px]"
+                        onClick={() => handleAliasSave(chatId)}
+                        disabled={disableControls}
+                      >
+                        {chatAliasSaved[chatId] ? 'Saved' : 'Save'}
+                      </button>
                       <button
                         className="rounded-full border border-marine-navy/20 px-3 py-2 text-xs text-marine-navy"
                         onClick={() => handleRemoveChatId(index)}

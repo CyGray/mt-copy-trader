@@ -13,6 +13,7 @@ import {
   DocumentData,
 } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { formatTimestamp } from '@/lib/formatTimestamp';
 
 const PAGE_SIZE = 20;
 
@@ -206,7 +207,7 @@ export default function LogsPage() {
               ? (logsToRender as TelegramMessageRow[]).map((row) => (
                   <tr key={row.id} className="border-t border-marine-navy/10">
                     <td className="px-4 py-3 text-marine-navy/60">
-                      {row.timestamp ?? '—'}
+                      {formatTimestamp(row.timestamp) ?? '—'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-marine-navy">{row.text ?? '—'}</div>
@@ -234,7 +235,7 @@ export default function LogsPage() {
               : (logsToRender as SystemLogRow[]).map((row) => (
                   <tr key={row.id} className="border-t border-marine-navy/10">
                     <td className="px-4 py-3 text-marine-navy/60">
-                      {row.timestamp ?? '—'}
+                      {formatTimestamp(row.timestamp) ?? '—'}
                     </td>
                     <td className="px-4 py-3">
                       {row.message ?? '—'}

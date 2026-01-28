@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import { NewMessage } from 'telegram/events';
-import { TelegramClient } from 'telegram';
 import { initFirestore } from './firestoreAdmin';
 import { logger } from './logger';
 import { writeSystemLog } from './systemLog';
@@ -13,7 +12,7 @@ let lastSettingsFetch = 0;
 let cachedAllowedChatIds: string[] | null = null;
 
 const SETTINGS_DOC_PATH = 'settings/default';
-const SETTINGS_TTL_MS = 30_000;
+const SETTINGS_TTL_MS = 60_000;
 
 function isParseError(
   result: ReturnType<typeof parseTelegramSignal>,
@@ -73,7 +72,6 @@ function getEditDate(message: unknown): Date | null {
 async function logTelegramMessage(
   type: 'new' | 'edit',
   message: unknown,
-  client: TelegramClient,
 ): Promise<void> {
   const firestore = initFirestore();
   if (!firestore) {
@@ -183,7 +181,8 @@ async function getAllowedChatIds(): Promise<string[]> {
     const data = snap.data() as
       | { telegram?: { allowed_chat_ids?: string[] } }
       | undefined;
-    cachedAllowedChatIds = data?.telegram?.allowed_chat_ids ?? [];
+    const rawIds = data?.telegram?.allowed_chat_ids ?? [];
+    cachedAllowedChatIds = rawIds.map((id) => String(id).trim()).filter(Boolean);
     lastSettingsFetch = now;
     return cachedAllowedChatIds;
   } catch (error) {
@@ -214,7 +213,7 @@ export async function startTelegramListener(): Promise<void> {
       const chatId = getChatId(event.message);
       const messageId = getMessageId(event.message);
       logger.info('telegram_message_received', { chatId, messageId, type });
-      await logTelegramMessage(type, event.message, client);
+    await logTelegramMessage(type, event.message);
     } catch (error) {
       logger.error('telegram_listener_error', {
         error: error instanceof Error ? error.message : String(error),

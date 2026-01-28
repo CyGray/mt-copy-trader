@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { signOutUser } from '@/lib/auth';
 import { useAuth } from '@/lib/useAuth';
 import DashboardShell from '@/components/DashboardShell';
@@ -14,6 +14,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { formatTimestamp } from '@/lib/formatTimestamp';
 
 type TelegramStatus =
   | 'disconnected'
@@ -26,6 +27,7 @@ type TelegramStatusResponse = {
   status?: TelegramStatus;
   reauthRequired?: boolean;
   phone?: string | null;
+  displayName?: string | null;
   lastError?: string | null;
 };
 
@@ -45,13 +47,14 @@ type RecentTelegramLog = {
 };
 
 export default function Home() {
-  const { user, role, loading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [workerStatus, setWorkerStatus] = useState<'pending' | 'ok' | 'error'>(
     'pending',
   );
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>('disconnected');
   const [telegramReauthRequired, setTelegramReauthRequired] = useState(false);
   const [telegramPhone, setTelegramPhone] = useState<string | null>(null);
+  const [telegramDisplayName, setTelegramDisplayName] = useState<string | null>(null);
   const [telegramLastError, setTelegramLastError] = useState<string | null>(null);
   const [openPositions, setOpenPositions] = useState<number>(0);
   const [lastSignal, setLastSignal] = useState<{ symbol?: string; timestamp?: string } | null>(
@@ -60,10 +63,39 @@ export default function Home() {
   const [statsError, setStatsError] = useState<string | null>(null);
   const [recentSystemLogs, setRecentSystemLogs] = useState<RecentSystemLog[]>([]);
   const [recentTelegramLogs, setRecentTelegramLogs] = useState<RecentTelegramLog[]>([]);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [logsLoading, setLogsLoading] = useState(true);
+  const [telegramLoading, setTelegramLoading] = useState(true);
+
+  const healthCache = useRef<{ status: 'pending' | 'ok' | 'error'; ts: number } | null>(null);
+  const telegramCache = useRef<{
+    data: TelegramStatusResponse;
+    ts: number;
+  } | null>(null);
+  const statsCache = useRef<{
+    openPositions: number;
+    lastSignal: { symbol?: string; timestamp?: string } | null;
+    ts: number;
+  } | null>(null);
+  const logsCache = useRef<{
+    system: RecentSystemLog[];
+    telegram: RecentTelegramLog[];
+    ts: number;
+  } | null>(null);
+
+  const HEALTH_TTL_MS = 15_000;
+  const STATUS_TTL_MS = 15_000;
+  const STATS_TTL_MS = 15_000;
+  const LOGS_TTL_MS = 15_000;
 
   useEffect(() => {
     let isMounted = true;
     const checkWorker = async () => {
+      const now = Date.now();
+      if (healthCache.current && now - healthCache.current.ts < HEALTH_TTL_MS) {
+        if (isMounted) setWorkerStatus(healthCache.current.status);
+        return;
+      }
       try {
         const response = await fetch('/api/worker/health', {
           method: 'GET',
@@ -71,11 +103,14 @@ export default function Home() {
         });
         if (!response.ok) {
           if (isMounted) setWorkerStatus('error');
+          healthCache.current = { status: 'error', ts: now };
           return;
         }
         if (isMounted) setWorkerStatus('ok');
+        healthCache.current = { status: 'ok', ts: now };
       } catch {
         if (isMounted) setWorkerStatus('error');
+        healthCache.current = { status: 'error', ts: now };
       }
     };
 
@@ -88,6 +123,7 @@ export default function Home() {
   useEffect(() => {
     if (!firestoreDb) {
       setStatsError('Firestore not initialized.');
+      setStatsLoading(false);
       return;
     }
 
@@ -95,45 +131,70 @@ export default function Home() {
     let cancelled = false;
 
     const loadStats = async () => {
+      setStatsLoading(true);
+      const now = Date.now();
+      if (statsCache.current && now - statsCache.current.ts < STATS_TTL_MS) {
+        if (!cancelled) {
+          setOpenPositions(statsCache.current.openPositions);
+          setLastSignal(statsCache.current.lastSignal);
+          setStatsError(null);
+          setStatsLoading(false);
+        }
+        return;
+      }
       try {
         const activeStates = ['OPEN', 'PROTECTION_PLACED', 'ENTRY_PLACED'];
         const tradesQuery = query(
           collection(db, 'trade_sets'),
           where('state', 'in', activeStates),
         );
-        const tradeSnapshot = await getDocs(tradesQuery);
-        const openCount = tradeSnapshot.docs.length;
-
         const lastSignalQuery = query(
           collection(db, 'trade_sets'),
           orderBy('created_at', 'desc'),
           limit(1),
         );
-        const lastSignalSnapshot = await getDocs(lastSignalQuery);
+        const [tradeSnapshot, lastSignalSnapshot] = await Promise.all([
+          getDocs(tradesQuery),
+          getDocs(lastSignalQuery),
+        ]);
+        const openCount = tradeSnapshot.docs.length;
         const lastDoc = lastSignalSnapshot.docs[0]?.data() as
           | { symbol?: string; created_at?: string }
           | undefined;
 
         if (!cancelled) {
+          const nextLastSignal = lastDoc
+            ? { symbol: lastDoc.symbol, timestamp: lastDoc.created_at }
+            : null;
           setOpenPositions(openCount);
-          setLastSignal(
-            lastDoc
-              ? { symbol: lastDoc.symbol, timestamp: lastDoc.created_at }
-              : null,
-          );
+          setLastSignal(nextLastSignal);
           setStatsError(null);
+          statsCache.current = {
+            openPositions: openCount,
+            lastSignal: nextLastSignal,
+            ts: now,
+          };
         }
       } catch (error) {
         if (!cancelled) {
           setStatsError(error instanceof Error ? error.message : 'Failed to load stats.');
+        }
+      } finally {
+        if (!cancelled) {
+          setStatsLoading(false);
         }
       }
     };
 
     void loadStats();
 
+    const interval = setInterval(() => {
+      void loadStats();
+    }, STATS_TTL_MS);
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -143,6 +204,16 @@ export default function Home() {
     let cancelled = false;
 
     const loadRecentLogs = async () => {
+      setLogsLoading(true);
+      const now = Date.now();
+      if (logsCache.current && now - logsCache.current.ts < LOGS_TTL_MS) {
+        if (!cancelled) {
+          setRecentSystemLogs(logsCache.current.system);
+          setRecentTelegramLogs(logsCache.current.telegram);
+          setLogsLoading(false);
+        }
+        return;
+      }
       try {
         const systemQuery = query(
           collection(db, 'system_logs'),
@@ -161,31 +232,39 @@ export default function Home() {
         ]);
 
         if (!cancelled) {
-          setRecentSystemLogs(
-            systemSnap.docs.map((doc) => ({
-              id: doc.id,
-              ...(doc.data() as Omit<RecentSystemLog, 'id'>),
-            })),
-          );
-          setRecentTelegramLogs(
-            telegramSnap.docs.map((doc) => ({
-              id: doc.id,
-              ...(doc.data() as Omit<RecentTelegramLog, 'id'>),
-            })),
-          );
+          const systemLogs = systemSnap.docs.map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<RecentSystemLog, 'id'>),
+          }));
+          const telegramLogs = telegramSnap.docs.map((doc) => ({
+            id: doc.id,
+            ...(doc.data() as Omit<RecentTelegramLog, 'id'>),
+          }));
+          setRecentSystemLogs(systemLogs);
+          setRecentTelegramLogs(telegramLogs);
+          logsCache.current = { system: systemLogs, telegram: telegramLogs, ts: now };
         }
       } catch {
         if (!cancelled) {
           setRecentSystemLogs([]);
           setRecentTelegramLogs([]);
         }
+      } finally {
+        if (!cancelled) {
+          setLogsLoading(false);
+        }
       }
     };
 
     void loadRecentLogs();
 
+    const interval = setInterval(() => {
+      void loadRecentLogs();
+    }, LOGS_TTL_MS);
+
     return () => {
       cancelled = true;
+      clearInterval(interval);
     };
   }, []);
 
@@ -199,7 +278,9 @@ export default function Home() {
     if (telegramStatus === 'authorized') {
       return {
         color: 'bg-emerald-500',
-        label: `Logged in as ${telegramPhone ?? 'linked account'}`,
+        label: telegramLoading
+          ? 'Syncing Telegram…'
+          : `Logged in as ${telegramDisplayName ?? telegramPhone ?? 'linked account'}`,
       };
     }
     if (telegramStatus === 'error') {
@@ -209,11 +290,24 @@ export default function Home() {
       };
     }
     return { color: 'bg-gray-400', label: 'Not logged in' };
-  }, [telegramLastError, telegramPhone, telegramStatus]);
+  }, [telegramDisplayName, telegramLastError, telegramLoading, telegramPhone, telegramStatus]);
 
   useEffect(() => {
     let isMounted = true;
     const checkTelegram = async () => {
+      if (isMounted) setTelegramLoading(true);
+      const now = Date.now();
+      if (telegramCache.current && now - telegramCache.current.ts < STATUS_TTL_MS) {
+        if (isMounted) {
+          setTelegramStatus(telegramCache.current.data.status ?? 'disconnected');
+          setTelegramReauthRequired(Boolean(telegramCache.current.data.reauthRequired));
+          setTelegramPhone(telegramCache.current.data.phone ?? null);
+          setTelegramDisplayName(telegramCache.current.data.displayName ?? null);
+          setTelegramLastError(telegramCache.current.data.lastError ?? null);
+          setTelegramLoading(false);
+        }
+        return;
+      }
       try {
         const response = await fetch('/api/telegram/status', {
           method: 'GET',
@@ -226,16 +320,25 @@ export default function Home() {
         if (isMounted) {
           setTelegramReauthRequired(Boolean(data.reauthRequired));
           setTelegramPhone(data.phone ?? null);
+          setTelegramDisplayName(data.displayName ?? null);
           setTelegramLastError(data.lastError ?? null);
+          setTelegramLoading(false);
         }
+        telegramCache.current = { data, ts: now };
       } catch {
         if (isMounted) setTelegramStatus('error');
+        if (isMounted) setTelegramLoading(false);
       }
     };
 
     checkTelegram();
+    const interval = setInterval(() => {
+      void checkTelegram();
+    }, STATUS_TTL_MS);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -245,7 +348,9 @@ export default function Home() {
       title="Overview"
     >
       <div className="flex items-center justify-end">
-        {user ? (
+        {authLoading ? (
+          <span className="text-sm text-marine-navy/60">Syncing session…</span>
+        ) : user ? (
           <button
             className="rounded-full border border-marine-navy/20 px-4 py-2 text-sm text-marine-navy hover:bg-marine-mist"
             onClick={() => signOutUser()}
@@ -277,7 +382,7 @@ export default function Home() {
             Open positions
           </p>
           <p className="mt-3 text-2xl font-semibold text-marine-navy">
-            {statsError ? '—' : openPositions}
+            {statsLoading ? 'Syncing…' : statsError ? '—' : openPositions}
           </p>
           <p className="mt-2 text-sm text-marine-navy/70">Active trade sets</p>
         </div>
@@ -296,7 +401,9 @@ export default function Home() {
             {lastSignal?.symbol ?? '—'}
           </p>
           <p className="mt-2 text-sm text-marine-navy/70">
-            {lastSignal?.timestamp ?? 'No signals yet'}
+            {statsLoading
+              ? 'Syncing…'
+              : formatTimestamp(lastSignal?.timestamp) ?? 'No signals yet'}
           </p>
         </div>
       </div>
@@ -354,11 +461,15 @@ export default function Home() {
             <p className="text-xs uppercase tracking-[0.18em] text-marine-navy/60">Telegram</p>
             <ul className="mt-3 space-y-2 text-sm text-marine-navy/80">
               {recentTelegramLogs.length === 0 ? (
-                <li className="text-marine-navy/60">No recent Telegram logs.</li>
+                <li className="text-marine-navy/60">
+                  {logsLoading ? 'Syncing logs…' : 'No recent Telegram logs.'}
+                </li>
               ) : (
                 recentTelegramLogs.map((log) => (
                   <li key={log.id} className="rounded-lg bg-white px-3 py-2">
-                    <p className="text-xs text-marine-navy/60">{log.timestamp ?? '—'}</p>
+                    <p className="text-xs text-marine-navy/60">
+                      {formatTimestamp(log.timestamp) ?? '—'}
+                    </p>
                     <p className="text-sm text-marine-navy">{log.text ?? '—'}</p>
                   </li>
                 ))
@@ -369,11 +480,15 @@ export default function Home() {
             <p className="text-xs uppercase tracking-[0.18em] text-marine-navy/60">System</p>
             <ul className="mt-3 space-y-2 text-sm text-marine-navy/80">
               {recentSystemLogs.length === 0 ? (
-                <li className="text-marine-navy/60">No recent system logs.</li>
+                <li className="text-marine-navy/60">
+                  {logsLoading ? 'Syncing logs…' : 'No recent system logs.'}
+                </li>
               ) : (
                 recentSystemLogs.map((log) => (
                   <li key={log.id} className="rounded-lg bg-white px-3 py-2">
-                    <p className="text-xs text-marine-navy/60">{log.timestamp ?? '—'}</p>
+                    <p className="text-xs text-marine-navy/60">
+                      {formatTimestamp(log.timestamp) ?? '—'}
+                    </p>
                     <p className="text-sm text-marine-navy">
                       {log.component ? `${log.component}: ` : ''}{log.message ?? '—'}
                     </p>
