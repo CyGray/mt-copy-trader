@@ -143,7 +143,7 @@ function SidebarComponent({ collapsed: controlledCollapsed, onToggle }: SidebarP
         
         {/* More menu */}
         <Link
-          href="/logs"
+          href="/telegram"
           className="flex flex-col items-center gap-1 px-4 py-2 rounded-lg text-marine-navy/50 hover:text-marine-navy"
         >
           <MoreHorizontal className="h-5 w-5" />
