@@ -196,7 +196,7 @@ export default function TelegramPage() {
             <div className="text-center">
               <h3 className="text-lg font-semibold text-marine-navy">Enter Phone Number</h3>
               <p className="text-sm text-marine-navy/60">
-                We'll send a verification code to your Telegram
+                We&apos;ll send a verification code to your Telegram
               </p>
             </div>
             <FormField

@@ -23,6 +23,7 @@
         },
         "Move-Item": true,
         "Copy-Item": true,
-        "npx tsc": true
+        "npx tsc": true,
+        "npm --prefix /opt/bytrader/mt-copy-trader/web": true
     }
 }
