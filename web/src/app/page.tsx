@@ -14,6 +14,7 @@ import {
   where,
 } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { formatTimestamp, isNonEmptyMessage } from '@/lib/format';
 
 type TelegramStatus =
   | 'disconnected'
@@ -25,8 +26,6 @@ type TelegramStatus =
 type TelegramStatusResponse = {
   status?: TelegramStatus;
   reauthRequired?: boolean;
-  phone?: string | null;
-  lastError?: string | null;
 };
 
 type RecentSystemLog = {
@@ -51,8 +50,6 @@ export default function Home() {
   );
   const [telegramStatus, setTelegramStatus] = useState<TelegramStatus>('disconnected');
   const [telegramReauthRequired, setTelegramReauthRequired] = useState(false);
-  const [telegramPhone, setTelegramPhone] = useState<string | null>(null);
-  const [telegramLastError, setTelegramLastError] = useState<string | null>(null);
   const [openPositions, setOpenPositions] = useState<number>(0);
   const [lastSignal, setLastSignal] = useState<{ symbol?: string; timestamp?: string } | null>(
     null,
@@ -197,19 +194,13 @@ export default function Home() {
 
   const telegramHealth = useMemo(() => {
     if (telegramStatus === 'authorized') {
-      return {
-        color: 'bg-emerald-500',
-        label: `Logged in as ${telegramPhone ?? 'linked account'}`,
-      };
+      return { color: 'bg-emerald-500', label: 'Logged in as linked account' };
     }
     if (telegramStatus === 'error') {
-      return {
-        color: 'bg-red-500',
-        label: `Error: ${telegramLastError ?? 'session unavailable'}`,
-      };
+      return { color: 'bg-red-500', label: 'Error: session unavailable' };
     }
     return { color: 'bg-gray-400', label: 'Not logged in' };
-  }, [telegramLastError, telegramPhone, telegramStatus]);
+  }, [telegramStatus]);
 
   useEffect(() => {
     let isMounted = true;
@@ -225,8 +216,6 @@ export default function Home() {
         }
         if (isMounted) {
           setTelegramReauthRequired(Boolean(data.reauthRequired));
-          setTelegramPhone(data.phone ?? null);
-          setTelegramLastError(data.lastError ?? null);
         }
       } catch {
         if (isMounted) setTelegramStatus('error');
@@ -244,7 +233,26 @@ export default function Home() {
       active="dashboard"
       title="Overview"
     >
-      <div className="flex items-center justify-end">
+      <div className="flex flex-col gap-4 rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-4">
+          <img
+            src="/icon.png"
+            alt="Marine Trader logo"
+            className="h-12 w-12 rounded-full object-contain"
+          />
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-marine-navy/60">
+              Secure Ops
+            </p>
+            <p className="text-sm text-marine-navy/80">
+              {loading
+                ? 'Checking authentication...'
+                : user
+                  ? `Signed in as ${user.email ?? user.uid} (${role}).`
+                  : 'Sign in to access dashboard controls.'}
+            </p>
+          </div>
+        </div>
         {user ? (
           <button
             className="rounded-full border border-marine-navy/20 px-4 py-2 text-sm text-marine-navy hover:bg-marine-mist"
@@ -296,7 +304,7 @@ export default function Home() {
             {lastSignal?.symbol ?? '—'}
           </p>
           <p className="mt-2 text-sm text-marine-navy/70">
-            {lastSignal?.timestamp ?? 'No signals yet'}
+            {lastSignal?.timestamp ? formatTimestamp(lastSignal.timestamp) : 'No signals yet'}
           </p>
         </div>
       </div>
@@ -356,12 +364,16 @@ export default function Home() {
               {recentTelegramLogs.length === 0 ? (
                 <li className="text-marine-navy/60">No recent Telegram logs.</li>
               ) : (
-                recentTelegramLogs.map((log) => (
-                  <li key={log.id} className="rounded-lg bg-white px-3 py-2">
-                    <p className="text-xs text-marine-navy/60">{log.timestamp ?? '—'}</p>
-                    <p className="text-sm text-marine-navy">{log.text ?? '—'}</p>
-                  </li>
-                ))
+                recentTelegramLogs
+                  .filter((log) => isNonEmptyMessage(log.text))
+                  .map((log) => (
+                    <li key={log.id} className="rounded-lg bg-white px-3 py-2">
+                      <p className="text-xs text-marine-navy/60">
+                        {formatTimestamp(log.timestamp)}
+                      </p>
+                      <p className="text-sm text-marine-navy">{log.text ?? '—'}</p>
+                    </li>
+                  ))
               )}
             </ul>
           </div>
@@ -371,14 +383,18 @@ export default function Home() {
               {recentSystemLogs.length === 0 ? (
                 <li className="text-marine-navy/60">No recent system logs.</li>
               ) : (
-                recentSystemLogs.map((log) => (
-                  <li key={log.id} className="rounded-lg bg-white px-3 py-2">
-                    <p className="text-xs text-marine-navy/60">{log.timestamp ?? '—'}</p>
-                    <p className="text-sm text-marine-navy">
-                      {log.component ? `${log.component}: ` : ''}{log.message ?? '—'}
-                    </p>
-                  </li>
-                ))
+                recentSystemLogs
+                  .filter((log) => isNonEmptyMessage(log.message))
+                  .map((log) => (
+                    <li key={log.id} className="rounded-lg bg-white px-3 py-2">
+                      <p className="text-xs text-marine-navy/60">
+                        {formatTimestamp(log.timestamp)}
+                      </p>
+                      <p className="text-sm text-marine-navy">
+                        {log.component ? `${log.component}: ` : ''}{log.message ?? '—'}
+                      </p>
+                    </li>
+                  ))
               )}
             </ul>
           </div>

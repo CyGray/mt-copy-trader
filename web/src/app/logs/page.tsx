@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import DashboardShell from '@/components/DashboardShell';
 import {
   collection,
+  doc,
   getDocs,
   limit,
   orderBy,
@@ -11,8 +12,10 @@ import {
   startAfter,
   QueryDocumentSnapshot,
   DocumentData,
+  getDoc,
 } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { formatTimestamp, isNonEmptyMessage } from '@/lib/format';
 
 const PAGE_SIZE = 20;
 
@@ -48,6 +51,7 @@ export default function LogsPage() {
   const [activeTab, setActiveTab] = useState<LogTab>('telegram');
   const [telegramLogs, setTelegramLogs] = useState<TelegramMessageRow[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLogRow[]>([]);
+  const [chatIdLabels, setChatIdLabels] = useState<Record<string, string>>({});
   const [telegramCursor, setTelegramCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(
     null,
   );
@@ -96,24 +100,48 @@ export default function LogsPage() {
   };
 
   const filteredTelegramLogs = useMemo(() => {
-    if (!filter.trim()) return telegramLogs;
+    const baseLogs = telegramLogs.filter((row) => isNonEmptyMessage(row.text));
+    if (!filter.trim()) return baseLogs;
     const needle = filter.toLowerCase();
-    return telegramLogs.filter((row) =>
-      [row.text, row.type, row.chat_id, row.message_id, row.parse_error]
+    return baseLogs.filter((row) =>
+      [
+        row.text,
+        row.type,
+        row.chat_id,
+        row.message_id,
+        row.parse_error,
+        row.chat_id ? chatIdLabels[row.chat_id] : undefined,
+      ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle)),
     );
-  }, [filter, telegramLogs]);
+  }, [filter, telegramLogs, chatIdLabels]);
 
   const filteredSystemLogs = useMemo(() => {
-    if (!filter.trim()) return systemLogs;
+    const baseLogs = systemLogs.filter((row) => isNonEmptyMessage(row.message));
+    if (!filter.trim()) return baseLogs;
     const needle = filter.toLowerCase();
-    return systemLogs.filter((row) =>
+    return baseLogs.filter((row) =>
       [row.level, row.component, row.message]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(needle)),
     );
   }, [filter, systemLogs]);
+
+  useEffect(() => {
+    const loadChatLabels = async () => {
+      if (!firestoreDb) return;
+      try {
+        const snap = await getDoc(doc(firestoreDb, 'settings', 'default'));
+        const data = snap.data() as { telegram?: { chat_id_labels?: Record<string, string> } };
+        setChatIdLabels(data?.telegram?.chat_id_labels ?? {});
+      } catch {
+        setChatIdLabels({});
+      }
+    };
+
+    void loadChatLabels();
+  }, []);
 
   const logsToRender = activeTab === 'telegram' ? filteredTelegramLogs : filteredSystemLogs;
 
@@ -133,11 +161,11 @@ export default function LogsPage() {
       title="Logs"
       description="View Telegram messages and system logs from Firestore."
     >
-      <header className="flex flex-col gap-3 rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm">
+      <header className="flex flex-col gap-3 rounded-2xl border border-marine-navy/10 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2 text-sm">
             <button
-              className={`rounded-full px-4 py-1.5 ${
+              className={`rounded px-3 py-1.5 ${
                 activeTab === 'telegram'
                   ? 'bg-marine-navy text-white'
                   : 'border border-marine-navy/20 text-marine-navy/70'
@@ -147,7 +175,7 @@ export default function LogsPage() {
               Telegram
             </button>
             <button
-              className={`rounded-full px-4 py-1.5 ${
+              className={`rounded px-3 py-1.5 ${
                 activeTab === 'system'
                   ? 'bg-marine-navy text-white'
                   : 'border border-marine-navy/20 text-marine-navy/70'
@@ -160,21 +188,21 @@ export default function LogsPage() {
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <input
-            className="flex-1 rounded-lg border border-marine-navy/20 bg-marine-mist px-3 py-2 text-sm text-marine-navy"
+            className="flex-1 rounded border border-marine-navy/20 bg-white px-3 py-2 text-sm"
             placeholder="Filter logs"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
           />
           <div className="flex gap-2">
             <button
-              className="rounded-lg border border-marine-navy/20 px-3 py-2 text-sm text-marine-navy"
+              className="rounded-full border border-marine-navy/20 px-3 py-2 text-sm text-marine-navy"
               onClick={() => loadLogs(activeTab, true)}
               disabled={loading}
             >
               Refresh
             </button>
             <button
-              className="rounded-lg bg-marine-navy px-3 py-2 text-sm text-white shadow disabled:opacity-60"
+              className="rounded-full bg-marine-navy px-3 py-2 text-sm text-white disabled:opacity-60"
               onClick={() => loadLogs(activeTab)}
               disabled={loading}
             >
@@ -187,7 +215,7 @@ export default function LogsPage() {
 
       <div className="overflow-hidden rounded-2xl border border-marine-navy/10 bg-white shadow-sm">
         <table className="w-full text-left text-xs text-marine-navy/80">
-          <thead className="bg-marine-mist text-marine-navy/70">
+          <thead className="bg-marine-mist text-marine-navy/60">
             <tr>
               <th className="px-4 py-3">Timestamp</th>
               <th className="px-4 py-3">Message</th>
@@ -206,12 +234,15 @@ export default function LogsPage() {
               ? (logsToRender as TelegramMessageRow[]).map((row) => (
                   <tr key={row.id} className="border-t border-marine-navy/10">
                     <td className="px-4 py-3 text-marine-navy/60">
-                      {row.timestamp ?? '—'}
+                      {formatTimestamp(row.timestamp)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-marine-navy">{row.text ?? '—'}</div>
-                      <div className="mt-1 text-xs text-marine-navy/60">
-                        {row.type ?? 'message'} · {row.chat_id ?? 'unknown'}
+                      <div
+                        className="mt-1 text-xs text-marine-navy/60"
+                        title={row.chat_id ?? 'unknown'}
+                      >
+                        {row.type ?? 'message'} · {chatIdLabels[row.chat_id ?? ''] ?? row.chat_id ?? 'unknown'}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-marine-navy/70">
@@ -234,7 +265,7 @@ export default function LogsPage() {
               : (logsToRender as SystemLogRow[]).map((row) => (
                   <tr key={row.id} className="border-t border-marine-navy/10">
                     <td className="px-4 py-3 text-marine-navy/60">
-                      {row.timestamp ?? '—'}
+                      {formatTimestamp(row.timestamp)}
                     </td>
                     <td className="px-4 py-3">
                       {row.message ?? '—'}

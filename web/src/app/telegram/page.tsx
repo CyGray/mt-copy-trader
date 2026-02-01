@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/useAuth';
 
 type TelegramStatus =
   | 'disconnected'
@@ -19,6 +20,7 @@ type TelegramStatusResponse = {
 };
 
 export default function TelegramPage() {
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<TelegramStatus>('disconnected');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -27,6 +29,12 @@ export default function TelegramPage() {
   const [loading, setLoading] = useState(false);
   const [reauthRequired, setReauthRequired] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [authLoading, user, router]);
 
   const refreshStatus = async () => {
     try {
@@ -145,6 +153,16 @@ export default function TelegramPage() {
       setLoading(false);
     }
   };
+
+  if (authLoading || !user) {
+    return (
+      <main className="mx-auto flex min-h-screen max-w-xl items-center px-6 py-12">
+        <div className="rounded-2xl border border-marine-navy/10 bg-white p-6 text-sm text-marine-navy/70 shadow-sm">
+          Checking your session…
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto max-w-xl px-6 py-12">

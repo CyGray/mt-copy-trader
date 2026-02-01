@@ -1,4 +1,4 @@
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { firebaseAuth, firestoreDb } from './firebaseClient';
@@ -23,6 +23,32 @@ async function fetchRoleFromApi(token: string): Promise<UserRole | null> {
   }
 }
 
+async function ensureAllowedEmail(user: User): Promise<boolean> {
+  try {
+    const token = await user.getIdToken();
+    const response = await fetch('/api/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    // If allowed, response.ok is true. If not allowed, response.status is 403.
+    if (response.ok) return true;
+    // For debugging: log error message
+    if (process.env.NODE_ENV !== 'production') {
+      const data = await response.json().catch(() => ({}));
+      // eslint-disable-next-line no-console
+      console.error('[useAuth] Not allowed:', data?.error);
+    }
+    return false;
+  } catch (err) {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.error('[useAuth] Error checking allowed email:', err);
+    }
+    return false;
+  }
+}
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<UserRole>('unknown');
@@ -39,6 +65,17 @@ export function useAuth() {
       setUser(nextUser);
 
       if (!nextUser) {
+        setRole('unknown');
+        setLoading(false);
+        return;
+      }
+
+      const allowed = await ensureAllowedEmail(nextUser);
+      if (!allowed) {
+        if (firebaseAuth) {
+          await signOut(firebaseAuth);
+        }
+        setUser(null);
         setRole('unknown');
         setLoading(false);
         return;

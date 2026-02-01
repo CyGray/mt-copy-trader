@@ -10,6 +10,7 @@ const SETTINGS_DOC = 'settings/default';
 
 type TelegramSettings = {
   allowed_chat_ids?: string[];
+  chat_id_labels?: Record<string, string>;
 };
 
 type TradingSettings = {
@@ -34,6 +35,10 @@ export default function SettingsPage() {
   const { role, loading: authLoading } = useAuth();
   const [chatIds, setChatIds] = useState<string[]>([]);
   const [newChatId, setNewChatId] = useState('');
+  const [newChatLabel, setNewChatLabel] = useState('');
+  const [chatIdLabels, setChatIdLabels] = useState<Record<string, string>>({});
+  const [initialChatIds, setInitialChatIds] = useState<string[]>([]);
+  const [allowClearChatIds, setAllowClearChatIds] = useState(false);
   const [riskMode, setRiskMode] = useState<'PERCENT_AVAILABLE_MARGIN' | 'FIXED_USDT'>(
     'FIXED_USDT',
   );
@@ -66,9 +71,12 @@ export default function SettingsPage() {
       const snap = await getDoc(ref);
       const data = snap.data() as SettingsDoc | undefined;
       const ids = data?.telegram?.allowed_chat_ids ?? [];
+      const labels = data?.telegram?.chat_id_labels ?? {};
       const trading = data?.trading ?? {};
 
       setChatIds(ids);
+      setInitialChatIds(ids);
+      setChatIdLabels(labels);
       setRiskMode(trading.risk_mode ?? 'FIXED_USDT');
       setRiskValue(String(trading.risk_value ?? 20));
       setMaxSignalDelay(String(trading.max_signal_delay_sec ?? 120));
@@ -91,15 +99,29 @@ export default function SettingsPage() {
       setError('Firestore not initialized.');
       return;
     }
+    const invalidChatId = chatIds.find((id) => !isValidChatId(id));
+    if (invalidChatId) {
+      setError('Chat IDs must contain only numbers, with an optional leading "-".');
+      return;
+    }
+    if (initialChatIds.length > 0 && chatIds.length === 0 && !allowClearChatIds) {
+      setError('Clearing all chat IDs requires enabling the confirmation toggle below.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setSaved(false);
 
     try {
+      // Only save labels for chat IDs that are present
+      const filteredLabels: Record<string, string> = {};
+      for (const id of chatIds) {
+        if (chatIdLabels[id]) filteredLabels[id] = chatIdLabels[id];
+      }
       await setDoc(
         doc(firestoreDb, SETTINGS_DOC),
         {
-          telegram: { allowed_chat_ids: chatIds },
+          telegram: { allowed_chat_ids: chatIds, chat_id_labels: filteredLabels },
           trading: {
             risk_mode: riskMode,
             risk_value: Number(riskValue),
@@ -129,23 +151,70 @@ export default function SettingsPage() {
 
   const disableControls = loading || authLoading || !isAdmin;
 
+  const isValidChatId = (value: string) => /^-?\d+$/.test(value.trim());
+
   const handleAddChatId = () => {
     const trimmed = newChatId.trim();
     if (!trimmed) return;
+    if (!isValidChatId(trimmed)) {
+      setError('Chat IDs must contain only numbers, with an optional leading "-".');
+      return;
+    }
     if (chatIds.includes(trimmed)) {
       setNewChatId('');
+      setNewChatLabel('');
       return;
     }
     setChatIds((prev) => [...prev, trimmed]);
+    if (newChatLabel.trim()) {
+      setChatIdLabels((prev) => ({ ...prev, [trimmed]: newChatLabel.trim() }));
+    }
     setNewChatId('');
+    setNewChatLabel('');
   };
 
   const handleUpdateChatId = (index: number, value: string) => {
-    setChatIds((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+    setChatIds((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        const trimmed = value.trim();
+        const existingLabel = chatIdLabels[item];
+        if (existingLabel) {
+          setChatIdLabels((labels) => {
+            const next = { ...labels };
+            delete next[item];
+            if (trimmed) next[trimmed] = existingLabel;
+            return next;
+          });
+        }
+        return value;
+      }),
+    );
+  };
+
+  const handleUpdateChatLabel = (chatId: string, value: string) => {
+    const trimmed = value.trim();
+    setChatIdLabels((prev) => {
+      const next = { ...prev };
+      if (!trimmed) {
+        delete next[chatId];
+        return next;
+      }
+      next[chatId] = trimmed;
+      return next;
+    });
   };
 
   const handleRemoveChatId = (index: number) => {
+    const target = chatIds[index];
+    if (!target) return;
+    if (!window.confirm('Remove this chat ID?')) return;
     setChatIds((prev) => prev.filter((_, idx) => idx !== index));
+    setChatIdLabels((prev) => {
+      const next = { ...prev };
+      delete next[target];
+      return next;
+    });
   };
 
   return (
@@ -304,6 +373,13 @@ export default function SettingsPage() {
                   onChange={(event) => setNewChatId(event.target.value)}
                   disabled={disableControls}
                 />
+                <input
+                  className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
+                  placeholder="Optional label (e.g., Signals Channel)"
+                  value={newChatLabel}
+                  onChange={(event) => setNewChatLabel(event.target.value)}
+                  disabled={disableControls}
+                />
                 <button
                   className="rounded-full bg-marine-navy px-4 py-2 text-sm text-white disabled:opacity-60"
                   onClick={handleAddChatId}
@@ -328,6 +404,13 @@ export default function SettingsPage() {
                         onChange={(event) => handleUpdateChatId(index, event.target.value)}
                         disabled={disableControls}
                       />
+                      <input
+                        className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
+                        value={chatIdLabels[chatId] ?? ''}
+                        onChange={(event) => handleUpdateChatLabel(chatId, event.target.value)}
+                        placeholder="Label"
+                        disabled={disableControls}
+                      />
                       <button
                         className="rounded-full border border-marine-navy/20 px-3 py-2 text-xs text-marine-navy"
                         onClick={() => handleRemoveChatId(index)}
@@ -340,6 +423,15 @@ export default function SettingsPage() {
                 </ul>
               )}
             </div>
+            <label className="mt-4 flex items-center gap-2 text-xs text-marine-navy/70">
+              <input
+                type="checkbox"
+                checked={allowClearChatIds}
+                onChange={(event) => setAllowClearChatIds(event.target.checked)}
+                disabled={disableControls}
+              />
+              Allow clearing all chat IDs (required to save an empty list)
+            </label>
           </div>
         </section>
       </div>

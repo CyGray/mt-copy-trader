@@ -1,7 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/useAuth';
 
 type NavItem = {
   label: string;
@@ -26,6 +29,27 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default function DashboardShell({ active, title, description, children }: DashboardShellProps) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-marine-mist text-marine-navy">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8">
+          <div className="rounded-2xl border border-marine-navy/10 bg-white p-6 shadow-sm">
+            <p className="text-sm text-marine-navy/70">Checking your session…</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-marine-mist text-marine-navy">
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 lg:flex-row">
@@ -33,7 +57,7 @@ export default function DashboardShell({ active, title, description, children }:
           <div className="border-b border-marine-navy/10 p-4">
             <div className="flex items-center gap-3">
               <img
-                src="/logo.png"
+                src="/icon.png"
                 alt="Marine Trader logo"
                 className="h-10 w-10 rounded-full bg-white object-contain"
               />
