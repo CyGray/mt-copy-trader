@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const ADMIN_PATHS = ['/admin'];
+const PUBLIC_PATHS = ['/login'];
+const PUBLIC_FILE = /\.(.*)$/;
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isAdminRoute = ADMIN_PATHS.some((path) => pathname.startsWith(path));
 
-  if (!isAdminRoute) {
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon') ||
+    PUBLIC_FILE.test(pathname)
+  ) {
+    return NextResponse.next();
+  }
+
+  if (PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next();
   }
 
@@ -22,5 +31,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/:path*'],
 };

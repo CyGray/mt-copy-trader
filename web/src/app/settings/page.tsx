@@ -1,459 +1,437 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useState, useCallback, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
+import { FormField } from '@/components/ui/FormField';
+import { Button } from '@/components/ui/Button';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { Save, RefreshCw, Plus, Trash2, Shield, DollarSign, MessageCircle, Link } from 'lucide-react';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
-import DashboardShell from '@/components/DashboardShell';
-import { useAuth } from '@/lib/useAuth';
 
-const SETTINGS_DOC = 'settings/default';
+// Type for settings
+interface TradingSettings {
+  riskMode: string;
+  riskValue: number;
+  maxOpenPositions: number;
+  maxPositionsPerSymbol: number;
+  maxSignalDelay: number;
+  slippageTol: number;
+  tp1SkipBuffer: number;
+  paperMode: boolean;
+  killSwitch: boolean;
+  bybitOptional: boolean;
+}
 
-type TelegramSettings = {
-  allowed_chat_ids?: string[];
-  chat_id_labels?: Record<string, string>;
-};
 
-type TradingSettings = {
-  risk_mode?: 'PERCENT_AVAILABLE_MARGIN' | 'FIXED_USDT';
-  risk_value?: number;
-  max_signal_delay_sec?: number;
-  slippage_tol?: number;
-  tp1_skip_buffer?: number;
-  max_open_positions?: number;
-  max_positions_per_symbol?: number;
-  paper_mode?: boolean;
-  kill_switch?: boolean;
-  bybit_optional?: boolean;
-};
+interface TelegramSettings {
+  chatIds: string[];
+  chatIdLabels: Record<string, string>;
+}
 
-type SettingsDoc = {
-  telegram?: TelegramSettings;
-  trading?: TradingSettings;
+interface Settings {
+  trading: TradingSettings;
+  telegram: TelegramSettings;
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  trading: {
+    riskMode: 'FIXED_USDT',
+    riskValue: 20,
+    maxOpenPositions: 3,
+    maxPositionsPerSymbol: 1,
+    maxSignalDelay: 120,
+    slippageTol: 0.001,
+    tp1SkipBuffer: 0.0015,
+    paperMode: false,
+    killSwitch: false,
+    bybitOptional: false,
+  },
+  telegram: {
+    chatIds: [],
+    chatIdLabels: {},
+  },
 };
 
 export default function SettingsPage() {
-  const { role, loading: authLoading } = useAuth();
-  const [chatIds, setChatIds] = useState<string[]>([]);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [newChatId, setNewChatId] = useState('');
   const [newChatLabel, setNewChatLabel] = useState('');
-  const [chatIdLabels, setChatIdLabels] = useState<Record<string, string>>({});
-  const [initialChatIds, setInitialChatIds] = useState<string[]>([]);
-  const [allowClearChatIds, setAllowClearChatIds] = useState(false);
-  const [riskMode, setRiskMode] = useState<'PERCENT_AVAILABLE_MARGIN' | 'FIXED_USDT'>(
-    'FIXED_USDT',
-  );
-  const [riskValue, setRiskValue] = useState<string>('20');
-  const [maxSignalDelay, setMaxSignalDelay] = useState<string>('120');
-  const [slippageTol, setSlippageTol] = useState<string>('0.001');
-  const [tp1Buffer, setTp1Buffer] = useState<string>('0.0015');
-  const [maxOpenPositions, setMaxOpenPositions] = useState<string>('3');
-  const [maxPositionsPerSymbol, setMaxPositionsPerSymbol] = useState<string>('1');
-  const [paperMode, setPaperMode] = useState(false);
-  const [killSwitch, setKillSwitch] = useState(false);
-  const [bybitOptional, setBybitOptional] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const isAdmin = role === 'admin';
-
-  const loadSettings = async () => {
+  useEffect(() => {
     if (!firestoreDb) {
-      setError('Firestore not initialized.');
+      setIsLoading(false);
       return;
     }
-    setLoading(true);
-    setError(null);
-    setSaved(false);
 
+    const ref = doc(firestoreDb, 'settings', 'default');
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      const data = (snap.data() ?? {}) as {
+        trading?: Record<string, unknown>;
+        telegram?: Record<string, unknown>;
+      };
+
+      const trading = data.trading ?? {};
+      const telegram = data.telegram ?? {};
+
+      const nextSettings: Settings = {
+        trading: {
+          riskMode: (trading.risk_mode as string) ?? (trading.riskMode as string) ?? DEFAULT_SETTINGS.trading.riskMode,
+          riskValue: Number(trading.risk_value ?? trading.riskValue ?? DEFAULT_SETTINGS.trading.riskValue),
+          maxOpenPositions: Number(trading.max_open_positions ?? trading.maxOpenPositions ?? DEFAULT_SETTINGS.trading.maxOpenPositions),
+          maxPositionsPerSymbol: Number(trading.max_positions_per_symbol ?? trading.maxPositionsPerSymbol ?? DEFAULT_SETTINGS.trading.maxPositionsPerSymbol),
+          maxSignalDelay: Number(trading.max_signal_delay_sec ?? trading.maxSignalDelay ?? DEFAULT_SETTINGS.trading.maxSignalDelay),
+          slippageTol: Number(trading.slippage_tol ?? trading.slippageTol ?? DEFAULT_SETTINGS.trading.slippageTol),
+          tp1SkipBuffer: Number(trading.tp1_skip_buffer ?? trading.tp1SkipBuffer ?? DEFAULT_SETTINGS.trading.tp1SkipBuffer),
+          paperMode: Boolean(trading.paper_mode ?? trading.paperMode ?? DEFAULT_SETTINGS.trading.paperMode),
+          killSwitch: Boolean(trading.kill_switch ?? trading.killSwitch ?? DEFAULT_SETTINGS.trading.killSwitch),
+          bybitOptional: Boolean(trading.bybit_optional ?? trading.bybitOptional ?? DEFAULT_SETTINGS.trading.bybitOptional),
+        },
+        telegram: {
+          chatIds: (telegram.allowed_chat_ids as string[]) ?? (telegram.chatIds as string[]) ?? DEFAULT_SETTINGS.telegram.chatIds,
+          chatIdLabels: (telegram.chat_id_labels as Record<string, string>) ?? (telegram.chatIdLabels as Record<string, string>) ?? DEFAULT_SETTINGS.telegram.chatIdLabels,
+        },
+      };
+
+      setSettings(nextSettings);
+      setHasChanges(false);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Update trading settings
+  const updateTrading = useCallback(<K extends keyof TradingSettings>(
+    field: K,
+    value: TradingSettings[K]
+  ) => {
+    setSettings((prev) => ({
+      ...prev,
+      trading: { ...prev.trading, [field]: value },
+    }));
+    setHasChanges(true);
+  }, []);
+
+  // Add chat
+  const addChat = useCallback(() => {
+    if (!newChatId.trim()) return;
+    const trimmedId = newChatId.trim();
+    setSettings((prev) => ({
+      ...prev,
+      telegram: {
+        chatIds: prev.telegram.chatIds.includes(trimmedId)
+          ? prev.telegram.chatIds
+          : [...prev.telegram.chatIds, trimmedId],
+        chatIdLabels: {
+          ...prev.telegram.chatIdLabels,
+          [trimmedId]: newChatLabel || prev.telegram.chatIdLabels[trimmedId] || `Chat ${prev.telegram.chatIds.length + 1}`,
+        },
+      },
+    }));
+    setNewChatId('');
+    setNewChatLabel('');
+    setHasChanges(true);
+  }, [newChatId, newChatLabel]);
+
+  // Remove chat
+  const removeChat = useCallback((chatId: string) => {
+    setSettings((prev) => {
+      const newLabels = { ...prev.telegram.chatIdLabels };
+      delete newLabels[chatId];
+      return {
+        ...prev,
+        telegram: {
+          chatIds: prev.telegram.chatIds.filter((id) => id !== chatId),
+          chatIdLabels: newLabels,
+        },
+      };
+    });
+    setHasChanges(true);
+  }, []);
+
+  // Save handler
+  const handleSave = useCallback(async () => {
+    setIsSaving(true);
     try {
-      const ref = doc(firestoreDb, SETTINGS_DOC);
-      const snap = await getDoc(ref);
-      const data = snap.data() as SettingsDoc | undefined;
-      const ids = data?.telegram?.allowed_chat_ids ?? [];
-      const labels = data?.telegram?.chat_id_labels ?? {};
-      const trading = data?.trading ?? {};
-
-      setChatIds(ids);
-      setInitialChatIds(ids);
-      setChatIdLabels(labels);
-      setRiskMode(trading.risk_mode ?? 'FIXED_USDT');
-      setRiskValue(String(trading.risk_value ?? 20));
-      setMaxSignalDelay(String(trading.max_signal_delay_sec ?? 120));
-      setSlippageTol(String(trading.slippage_tol ?? 0.001));
-      setTp1Buffer(String(trading.tp1_skip_buffer ?? 0.0015));
-      setMaxOpenPositions(String(trading.max_open_positions ?? 3));
-      setMaxPositionsPerSymbol(String(trading.max_positions_per_symbol ?? 1));
-      setPaperMode(Boolean(trading.paper_mode));
-      setKillSwitch(Boolean(trading.kill_switch));
-      setBybitOptional(Boolean(trading.bybit_optional));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load settings.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveSettings = async () => {
-    if (!firestoreDb) {
-      setError('Firestore not initialized.');
-      return;
-    }
-    const invalidChatId = chatIds.find((id) => !isValidChatId(id));
-    if (invalidChatId) {
-      setError('Chat IDs must contain only numbers, with an optional leading "-".');
-      return;
-    }
-    if (initialChatIds.length > 0 && chatIds.length === 0 && !allowClearChatIds) {
-      setError('Clearing all chat IDs requires enabling the confirmation toggle below.');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setSaved(false);
-
-    try {
-      // Only save labels for chat IDs that are present
-      const filteredLabels: Record<string, string> = {};
-      for (const id of chatIds) {
-        if (chatIdLabels[id]) filteredLabels[id] = chatIdLabels[id];
+      if (!firestoreDb) {
+        setIsSaving(false);
+        return;
       }
+
+      const ref = doc(firestoreDb, 'settings', 'default');
       await setDoc(
-        doc(firestoreDb, SETTINGS_DOC),
+        ref,
         {
-          telegram: { allowed_chat_ids: chatIds, chat_id_labels: filteredLabels },
           trading: {
-            risk_mode: riskMode,
-            risk_value: Number(riskValue),
-            max_signal_delay_sec: Number(maxSignalDelay),
-            slippage_tol: Number(slippageTol),
-            tp1_skip_buffer: Number(tp1Buffer),
-            max_open_positions: Number(maxOpenPositions),
-            max_positions_per_symbol: Number(maxPositionsPerSymbol),
-            paper_mode: paperMode,
-            kill_switch: killSwitch,
-            bybit_optional: bybitOptional,
+            risk_mode: settings.trading.riskMode,
+            risk_value: settings.trading.riskValue,
+            max_open_positions: settings.trading.maxOpenPositions,
+            max_positions_per_symbol: settings.trading.maxPositionsPerSymbol,
+            max_signal_delay_sec: settings.trading.maxSignalDelay,
+            slippage_tol: settings.trading.slippageTol,
+            tp1_skip_buffer: settings.trading.tp1SkipBuffer,
+            paper_mode: settings.trading.paperMode,
+            kill_switch: settings.trading.killSwitch,
+            bybit_optional: settings.trading.bybitOptional,
+          },
+          telegram: {
+            allowed_chat_ids: settings.telegram.chatIds,
+            chat_id_labels: settings.telegram.chatIdLabels,
           },
         },
         { merge: true },
       );
-      setSaved(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save settings.');
+      setHasChanges(false);
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
-  };
-
-  useEffect(() => {
-    void loadSettings();
-  }, []);
-
-  const disableControls = loading || authLoading || !isAdmin;
-
-  const isValidChatId = (value: string) => /^-?\d+$/.test(value.trim());
-
-  const handleAddChatId = () => {
-    const trimmed = newChatId.trim();
-    if (!trimmed) return;
-    if (!isValidChatId(trimmed)) {
-      setError('Chat IDs must contain only numbers, with an optional leading "-".');
-      return;
-    }
-    if (chatIds.includes(trimmed)) {
-      setNewChatId('');
-      setNewChatLabel('');
-      return;
-    }
-    setChatIds((prev) => [...prev, trimmed]);
-    if (newChatLabel.trim()) {
-      setChatIdLabels((prev) => ({ ...prev, [trimmed]: newChatLabel.trim() }));
-    }
-    setNewChatId('');
-    setNewChatLabel('');
-  };
-
-  const handleUpdateChatId = (index: number, value: string) => {
-    setChatIds((prev) =>
-      prev.map((item, idx) => {
-        if (idx !== index) return item;
-        const trimmed = value.trim();
-        const existingLabel = chatIdLabels[item];
-        if (existingLabel) {
-          setChatIdLabels((labels) => {
-            const next = { ...labels };
-            delete next[item];
-            if (trimmed) next[trimmed] = existingLabel;
-            return next;
-          });
-        }
-        return value;
-      }),
-    );
-  };
-
-  const handleUpdateChatLabel = (chatId: string, value: string) => {
-    const trimmed = value.trim();
-    setChatIdLabels((prev) => {
-      const next = { ...prev };
-      if (!trimmed) {
-        delete next[chatId];
-        return next;
-      }
-      next[chatId] = trimmed;
-      return next;
-    });
-  };
-
-  const handleRemoveChatId = (index: number) => {
-    const target = chatIds[index];
-    if (!target) return;
-    if (!window.confirm('Remove this chat ID?')) return;
-    setChatIds((prev) => prev.filter((_, idx) => idx !== index));
-    setChatIdLabels((prev) => {
-      const next = { ...prev };
-      delete next[target];
-      return next;
-    });
-  };
+  }, [settings]);
 
   return (
-    <DashboardShell
-      active="settings"
+    <DashboardLayout
       title="Settings"
-      description="Configure trading controls, Telegram channels, and system safety toggles."
+      subtitle="Configure trading parameters and integrations"
+      breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Settings' }]}
     >
-      {!authLoading && !isAdmin ? (
-        <div className="rounded-2xl border border-marine-navy/10 bg-white p-4 text-sm text-marine-navy/70 shadow-sm">
-          You are signed in as a viewer. Settings are read-only.
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
-        <section className="space-y-6">
-          <div className="rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-marine-navy">Trading controls</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="text-sm text-marine-navy/70">Risk mode</label>
-                <select
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={riskMode}
-                  onChange={(event) =>
-                    setRiskMode(event.target.value as 'PERCENT_AVAILABLE_MARGIN' | 'FIXED_USDT')
-                  }
-                  disabled={disableControls}
-                >
-                  <option value="FIXED_USDT">Fixed USDT</option>
-                  <option value="PERCENT_AVAILABLE_MARGIN">Percent of available margin</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-marine-navy/70">Risk value</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={riskValue}
-                  onChange={(event) => setRiskValue(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-marine-navy/70">Max open positions</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={maxOpenPositions}
-                  onChange={(event) => setMaxOpenPositions(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-marine-navy/70">Max positions per symbol</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={maxPositionsPerSymbol}
-                  onChange={(event) => setMaxPositionsPerSymbol(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
-              </div>
-            </div>
+      <div className="space-y-4 pb-20">
+        {isLoading && (
+          <div className="rounded-lg border border-marine-navy/10 bg-marine-mist/50 px-4 py-2 text-xs text-marine-navy/60">
+            Loading settings from Firestore...
           </div>
-
-          <div className="rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-marine-navy">Signal safety</h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
+        )}
+        {/* Safety Controls */}
+        <CollapsibleSection
+          title="Safety Controls"
+          icon={<Shield className="h-4 w-4" />}
+          defaultOpen
+          badge={settings.trading.killSwitch ? <StatusBadge status="danger" label="KILL ACTIVE" pulse size="sm" /> : undefined}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4">
               <div>
-                <label className="text-sm text-marine-navy/70">Max signal delay (sec)</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={maxSignalDelay}
-                  onChange={(event) => setMaxSignalDelay(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
+                <p className="font-medium text-red-800">Kill Switch</p>
+                <p className="text-xs text-red-600">Stop all trading immediately</p>
               </div>
-              <div>
-                <label className="text-sm text-marine-navy/70">Slippage tolerance</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={slippageTol}
-                  onChange={(event) => setSlippageTol(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-marine-navy/70">TP1 skip buffer</label>
-                <input
-                  className="mt-2 w-full rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  value={tp1Buffer}
-                  onChange={(event) => setTp1Buffer(event.target.value)}
-                  type="number"
-                  disabled={disableControls}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="space-y-6">
-          <div className="rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-marine-navy">Runtime switches</h2>
-            <div className="mt-4 space-y-3 text-sm">
-              <label className="flex items-center justify-between rounded-lg border border-marine-navy/10 bg-marine-mist px-3 py-2">
-                <span>Paper mode (no live orders)</span>
-                <input
-                  type="checkbox"
-                  checked={paperMode}
-                  onChange={(event) => setPaperMode(event.target.checked)}
-                  disabled={disableControls}
-                />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-marine-navy/10 bg-marine-mist px-3 py-2">
-                <span>Kill switch (block new trades)</span>
-                <input
-                  type="checkbox"
-                  checked={killSwitch}
-                  onChange={(event) => setKillSwitch(event.target.checked)}
-                  disabled={disableControls}
-                />
-              </label>
-              <label className="flex items-center justify-between rounded-lg border border-marine-navy/10 bg-marine-mist px-3 py-2">
-                <span>Allow worker without Bybit</span>
-                <input
-                  type="checkbox"
-                  checked={bybitOptional}
-                  onChange={(event) => setBybitOptional(event.target.checked)}
-                  disabled={disableControls}
-                />
-              </label>
-              <p className="text-xs text-marine-navy/60">
-                When enabled, the worker will skip trade execution if Bybit credentials are not configured.
-              </p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-marine-navy/10 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-semibold text-marine-navy">Telegram access</h2>
-            <label className="mt-4 text-sm text-marine-navy/70">Allowed chat IDs</label>
-            <p className="mt-1 text-xs text-marine-navy/60">
-              Add multiple chat IDs to limit which Telegram channels are processed.
-            </p>
-            <div className="mt-3 rounded-xl border border-dashed border-marine-navy/20 bg-marine-mist p-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-marine-navy/60">
-                Add chat ID
-              </p>
-              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                <input
-                  className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  placeholder="-1001234567890"
-                  value={newChatId}
-                  onChange={(event) => setNewChatId(event.target.value)}
-                  disabled={disableControls}
-                />
-                <input
-                  className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                  placeholder="Optional label (e.g., Signals Channel)"
-                  value={newChatLabel}
-                  onChange={(event) => setNewChatLabel(event.target.value)}
-                  disabled={disableControls}
-                />
-                <button
-                  className="rounded-full bg-marine-navy px-4 py-2 text-sm text-white disabled:opacity-60"
-                  onClick={handleAddChatId}
-                  disabled={disableControls || !newChatId.trim()}
-                >
-                  Add
-                </button>
-              </div>
-            </div>
-            <div className="mt-4 rounded-xl border border-marine-navy/10 bg-white">
-              {chatIds.length === 0 ? (
-                <div className="px-4 py-6 text-sm text-marine-navy/60">
-                  No chat IDs configured. The worker will listen to all messages.
-                </div>
-              ) : (
-                <ul className="divide-y divide-marine-navy/10">
-                  {chatIds.map((chatId, index) => (
-                    <li key={`${chatId}-${index}`} className="flex items-center gap-3 px-4 py-3">
-                      <input
-                        className="flex-1 rounded-lg border border-marine-navy/20 bg-marine-mist px-3 py-2 text-sm"
-                        value={chatId}
-                        onChange={(event) => handleUpdateChatId(index, event.target.value)}
-                        disabled={disableControls}
-                      />
-                      <input
-                        className="flex-1 rounded-lg border border-marine-navy/20 bg-white px-3 py-2 text-sm"
-                        value={chatIdLabels[chatId] ?? ''}
-                        onChange={(event) => handleUpdateChatLabel(chatId, event.target.value)}
-                        placeholder="Label"
-                        disabled={disableControls}
-                      />
-                      <button
-                        className="rounded-full border border-marine-navy/20 px-3 py-2 text-xs text-marine-navy"
-                        onClick={() => handleRemoveChatId(index)}
-                        disabled={disableControls}
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-            <label className="mt-4 flex items-center gap-2 text-xs text-marine-navy/70">
-              <input
-                type="checkbox"
-                checked={allowClearChatIds}
-                onChange={(event) => setAllowClearChatIds(event.target.checked)}
-                disabled={disableControls}
+              <FormField
+                type="toggle"
+                value={settings.trading.killSwitch}
+                onChange={(val) => updateTrading('killSwitch', val)}
               />
-              Allow clearing all chat IDs (required to save an empty list)
-            </label>
+            </div>
+            
+            <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <div>
+                <p className="font-medium text-amber-800">Paper Mode</p>
+                <p className="text-xs text-amber-600">Simulate trades without real money</p>
+              </div>
+              <FormField
+                type="toggle"
+                value={settings.trading.paperMode}
+                onChange={(val) => updateTrading('paperMode', val)}
+              />
+            </div>
           </div>
-        </section>
+        </CollapsibleSection>
+
+        {/* Risk & Position Sizing */}
+        <CollapsibleSection
+          title="Risk & Position Sizing"
+          icon={<DollarSign className="h-4 w-4" />}
+          defaultOpen
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Risk Mode"
+              type="select"
+              value={settings.trading.riskMode}
+              onChange={(val) => updateTrading('riskMode', val)}
+              options={[
+                { value: 'FIXED_USDT', label: 'Fixed USDT' },
+                { value: 'PERCENT_BALANCE', label: '% of Balance' },
+                { value: 'FIXED_CONTRACTS', label: 'Fixed Contracts' },
+              ]}
+              hint="How to calculate position size"
+            />
+            
+            <FormField
+              label="Risk Value"
+              type="number"
+              value={settings.trading.riskValue}
+              onChange={(val) => updateTrading('riskValue', val)}
+              hint={settings.trading.riskMode === 'FIXED_USDT' ? 'USDT per trade' : 'Amount/percentage'}
+            />
+
+            <FormField
+              label="Max Open Positions"
+              type="number"
+              value={settings.trading.maxOpenPositions}
+              onChange={(val) => updateTrading('maxOpenPositions', val)}
+              hint="Maximum concurrent positions"
+            />
+            
+            <FormField
+              label="Max Per Symbol"
+              type="number"
+              value={settings.trading.maxPositionsPerSymbol}
+              onChange={(val) => updateTrading('maxPositionsPerSymbol', val)}
+              hint="Max positions per trading pair"
+            />
+
+            <FormField
+              label="Max Signal Delay (s)"
+              type="number"
+              value={settings.trading.maxSignalDelay}
+              onChange={(val) => updateTrading('maxSignalDelay', val)}
+              hint="Ignore signals older than this"
+            />
+            
+            <FormField
+              label="Slippage Tolerance"
+              type="number"
+              value={settings.trading.slippageTol}
+              onChange={(val) => updateTrading('slippageTol', val)}
+              hint="0.001 = 0.1%"
+              step={0.0001}
+            />
+
+            <FormField
+              label="TP1 Skip Buffer"
+              type="number"
+              value={settings.trading.tp1SkipBuffer}
+              onChange={(val) => updateTrading('tp1SkipBuffer', val)}
+              hint="Skip entry if past TP1 by this %"
+              step={0.0001}
+            />
+          </div>
+        </CollapsibleSection>
+
+        {/* Telegram Channels */}
+        <CollapsibleSection
+          title="Telegram Channels"
+          icon={<MessageCircle className="h-4 w-4" />}
+          defaultOpen
+          badge={<StatusBadge status="success" label={`${settings.telegram.chatIds.length} channels`} size="sm" />}
+        >
+          <div className="space-y-4">
+            {/* Current Chats */}
+            {settings.telegram.chatIds.map((chatId) => (
+              <div
+                key={chatId}
+                className="flex items-center justify-between rounded-lg border border-marine-navy/10 bg-marine-mist/50 p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-marine-accent/10">
+                    <MessageCircle className="h-4 w-4 text-marine-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-marine-navy">
+                      {settings.telegram.chatIdLabels[chatId] || chatId}
+                    </p>
+                    <p className="font-mono text-[10px] text-marine-navy/50">{chatId}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeChat(chatId)}
+                  className="text-red-500 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            {/* Add New Chat */}
+            <div className="flex flex-col gap-2 rounded-lg border border-dashed border-marine-navy/20 p-3 sm:flex-row">
+              <input
+                type="text"
+                placeholder="Chat ID"
+                value={newChatId}
+                onChange={(e) => setNewChatId(e.target.value)}
+                className="flex-1 rounded border border-marine-navy/20 px-3 py-2 text-sm focus:border-marine-accent focus:outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Label (optional)"
+                value={newChatLabel}
+                onChange={(e) => setNewChatLabel(e.target.value)}
+                className="flex-1 rounded border border-marine-navy/20 px-3 py-2 text-sm focus:border-marine-accent focus:outline-none"
+              />
+              <Button variant="secondary" size="sm" onClick={addChat}>
+                <Plus className="mr-1 h-4 w-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        {/* Integrations */}
+        <CollapsibleSection
+          title="Integrations"
+          icon={<Link className="h-4 w-4" />}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border border-marine-navy/10 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500">
+                  <span className="text-lg font-bold text-white">B</span>
+                </div>
+                <div>
+                  <p className="font-medium text-marine-navy">Bybit API</p>
+                  <p className="text-xs text-marine-navy/60">Connected as main exchange</p>
+                </div>
+              </div>
+              <StatusBadge status="success" label="Connected" />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-marine-navy">Bybit Optional</p>
+                <p className="text-xs text-marine-navy/60">Allow trading without Bybit connection</p>
+              </div>
+              <FormField
+                type="toggle"
+                value={settings.trading.bybitOptional}
+                onChange={(val) => updateTrading('bybitOptional', val)}
+              />
+            </div>
+          </div>
+        </CollapsibleSection>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          className="rounded-full border border-marine-navy/20 px-4 py-2 text-sm text-marine-navy"
-          onClick={loadSettings}
-          disabled={loading}
-        >
-          Refresh
-        </button>
-        <button
-          className="rounded-full bg-marine-navy px-4 py-2 text-sm text-white shadow disabled:opacity-60"
-          onClick={saveSettings}
-          disabled={disableControls}
-        >
-          Save settings
-        </button>
-        {saved ? <span className="text-sm text-emerald-600">Saved</span> : null}
+      {/* Sticky Save Bar */}
+      <div
+        className={`
+          fixed bottom-0 left-0 right-0 z-50 border-t border-marine-navy/10 bg-white p-4
+          transition-transform duration-300 sm:left-16
+          ${hasChanges ? 'translate-y-0' : 'translate-y-full'}
+        `}
+      >
+        <div className="mx-auto flex max-w-4xl items-center justify-between">
+          <p className="text-sm text-marine-navy/60">You have unsaved changes</p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setSettings(DEFAULT_SETTINGS);
+                setHasChanges(true);
+              }}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset
+            </Button>
+            <Button onClick={handleSave} isLoading={isSaving}>
+              <Save className="mr-2 h-4 w-4" />
+              Save Changes
+            </Button>
+          </div>
+        </div>
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
-    </DashboardShell>
+    </DashboardLayout>
   );
 }

@@ -20,6 +20,9 @@
         "/^sudo usermod -aG docker botuser$/": {
             "approve": true,
             "matchCommandLine": true
-        }
+        },
+        "Move-Item": true,
+        "Copy-Item": true,
+        "npx tsc": true
     }
 }
