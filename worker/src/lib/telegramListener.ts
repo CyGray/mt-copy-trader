@@ -35,26 +35,6 @@ function toIdString(value: bigint | number | string): string {
   return typeof value === 'bigint' ? value.toString() : String(value);
 }
 
-function getPeerSnapshot(message: unknown): {
-  chatIdRaw?: string;
-  peerChannelId?: string;
-  peerChatId?: string;
-  peerUserId?: string;
-} {
-  if (!message || typeof message !== 'object') return {};
-  const candidate = message as {
-    chatId?: bigint | number | string;
-    peerId?: { channelId?: bigint | number | string; chatId?: bigint | number | string; userId?: bigint | number | string };
-  };
-
-  return {
-    chatIdRaw: candidate.chatId != null ? toIdString(candidate.chatId) : undefined,
-    peerChannelId: candidate.peerId?.channelId != null ? toIdString(candidate.peerId.channelId) : undefined,
-    peerChatId: candidate.peerId?.chatId != null ? toIdString(candidate.peerId.chatId) : undefined,
-    peerUserId: candidate.peerId?.userId != null ? toIdString(candidate.peerId.userId) : undefined,
-  };
-}
-
 function getChatId(message: unknown): string {
   if (!message || typeof message !== 'object') return 'unknown';
   const candidate = message as {
@@ -123,17 +103,8 @@ async function logTelegramMessage(
   const messageId = getMessageId(message);
   const messageDate = getMessageDate(message);
   const editDate = getEditDate(message);
-  const peerSnapshot = getPeerSnapshot(message);
 
   const allowedChatIds = await getAllowedChatIds();
-  await writeSystemLog('info', 'telegram_listener', 'message_received', {
-    chatId,
-    messageId,
-    type,
-    allowedChatIdsCount: allowedChatIds.length,
-    peerSnapshot,
-    hasText: Boolean(text),
-  });
   if (allowedChatIds.length > 0 && !allowedChatIds.includes(chatId)) {
     logger.info('telegram_message_filtered', { chatId, messageId });
     await writeSystemLog('info', 'telegram_listener', 'message_filtered', {
@@ -270,12 +241,7 @@ export async function startTelegramListener(): Promise<void> {
     try {
       const chatId = getChatId(event.message);
       const messageId = getMessageId(event.message);
-      logger.info('telegram_message_received', {
-        chatId,
-        messageId,
-        type,
-        peerSnapshot: getPeerSnapshot(event.message),
-      });
+      logger.info('telegram_message_received', { chatId, messageId, type });
       await logTelegramMessage(type, event.message, client);
     } catch (error) {
       logger.error('telegram_listener_error', {
