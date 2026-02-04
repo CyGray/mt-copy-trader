@@ -32,6 +32,15 @@ function classifyId(id) {
   return 'unknown';
 }
 
+function expandVariants(id) {
+  const variants = new Set([id]);
+  if (/^\d+$/.test(id)) {
+    variants.add(`-100${id}`);
+    variants.add(`-${id}`);
+  }
+  return Array.from(variants);
+}
+
 async function run() {
   const db = initAdmin();
   const snap = await db.collection('settings').doc('default').get();
@@ -44,7 +53,9 @@ async function run() {
   console.log('settings/default.telegram.chat_id_labels:', labels);
   console.log('classification:');
   for (const id of allowed) {
-    console.log(`  ${id} -> ${classifyId(String(id))}`);
+    const asString = String(id).trim();
+    console.log(`  ${asString} (type: ${typeof id}) -> ${classifyId(asString)}`);
+    console.log(`    variants: ${expandVariants(asString).join(', ')}`);
   }
 }
 

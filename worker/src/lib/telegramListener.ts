@@ -194,9 +194,24 @@ async function getAllowedChatIds(): Promise<string[]> {
   try {
     const snap = await firestore.doc(SETTINGS_DOC_PATH).get();
     const data = snap.data() as
-      | { telegram?: { allowed_chat_ids?: string[] } }
+      | { telegram?: { allowed_chat_ids?: Array<string | number> } }
       | undefined;
-    cachedAllowedChatIds = data?.telegram?.allowed_chat_ids ?? [];
+    const rawIds = data?.telegram?.allowed_chat_ids ?? [];
+    const normalized = new Set<string>();
+
+    for (const rawId of rawIds) {
+      const id = String(rawId).trim();
+      if (!id) continue;
+
+      normalized.add(id);
+
+      if (/^\d+$/.test(id)) {
+        normalized.add(`-100${id}`);
+        normalized.add(`-${id}`);
+      }
+    }
+
+    cachedAllowedChatIds = Array.from(normalized);
     lastSettingsFetch = now;
     return cachedAllowedChatIds;
   } catch (error) {
