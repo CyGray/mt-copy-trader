@@ -19,6 +19,8 @@ let reauthRequired = false;
 let phoneNumber: string | null = null;
 let codeResolver: Resolver | null = null;
 let passwordResolver: Resolver | null = null;
+let lastDcRetryAt = 0;
+let lastDcRetryValue: number | null = null;
 
 function getDcFromError(error: unknown): number | null {
   if (!error) return null;
@@ -33,27 +35,53 @@ function getDcFromError(error: unknown): number | null {
 }
 
 async function handleDcMigrate(newDc: number): Promise<void> {
-  await writeSystemLog('info', 'telegram', 'dc_migrate_detected', {
-    newDc,
-    message: `Phone is on DC ${newDc}. Resetting client for manual retry.`,
-  });
+  const now = Date.now();
+  if (lastDcRetryValue === newDc && now - lastDcRetryAt < 60_000) {
+    status = 'error';
+    lastError = `Phone number is associated with DC ${newDc}. Please retry.`;
+    return;
+  }
 
-  // Clean up client state completely
+  lastDcRetryAt = now;
+  lastDcRetryValue = newDc;
+
   if (client) {
-    try {
-      await client.disconnect();
-    } catch {
-      // Ignore
+    const clientWithSwitch = client as unknown as {
+      _switchDC?: (dcId: number) => Promise<void | boolean>;
+      _switchDc?: (dcId: number) => Promise<void | boolean>;
+    };
+    const switchDc = clientWithSwitch._switchDC ?? clientWithSwitch._switchDc;
+    if (typeof switchDc === 'function') {
+      try {
+        await switchDc.call(client, newDc);
+      } catch {
+        try {
+          await client.disconnect();
+        } catch {
+          // Ignore
+        }
+        client = null;
+      }
+    } else {
+      try {
+        await client.disconnect();
+      } catch {
+        // Ignore
+      }
+      client = null;
     }
-    client = null;
   }
 
   codeResolver = null;
   passwordResolver = null;
   clearTelegramSession();
   status = 'disconnected';
-  reauthRequired = true;
-  lastError = `Phone number is on DC ${newDc}. Click "Change number" and try again.`;
+  reauthRequired = false;
+  lastError = null;
+
+  if (phoneNumber) {
+    await startTelegramLogin(phoneNumber);
+  }
 }
 
 async function recordError(context: string, error: unknown): Promise<void> {
@@ -172,7 +200,8 @@ export async function startTelegramLogin(phone: string): Promise<void> {
     passwordResolver = resolve;
   });
 
-  // Don't set global client until auth succeeds to avoid race conditions
+  client = nextClient;
+
   void nextClient
     .start({
       phoneNumber: async () => phoneNumber ?? phone,
@@ -189,8 +218,6 @@ export async function startTelegramLogin(phone: string): Promise<void> {
       },
     })
     .then(() => {
-      // Only set global client after successful authentication
-      client = nextClient;
       const sessionString = (nextClient.session as StringSession).save();
       saveTelegramSession(sessionString);
       status = 'authorized';
