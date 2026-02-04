@@ -31,16 +31,29 @@ function getMessageText(message: unknown): string {
   return candidate.message ?? candidate.text ?? '';
 }
 
+function toIdString(value: bigint | number | string): string {
+  return typeof value === 'bigint' ? value.toString() : String(value);
+}
+
 function getChatId(message: unknown): string {
   if (!message || typeof message !== 'object') return 'unknown';
   const candidate = message as {
     chatId?: bigint | number | string;
-    peerId?: { channelId?: number; chatId?: number; userId?: number };
+    peerId?: { channelId?: bigint | number | string; chatId?: bigint | number | string; userId?: bigint | number | string };
   };
-  if (candidate.chatId) return String(candidate.chatId);
-  if (candidate.peerId?.channelId) return String(candidate.peerId.channelId);
-  if (candidate.peerId?.chatId) return String(candidate.peerId.chatId);
-  if (candidate.peerId?.userId) return String(candidate.peerId.userId);
+
+  if (candidate.peerId?.channelId != null) {
+    return `-100${toIdString(candidate.peerId.channelId)}`;
+  }
+  if (candidate.peerId?.chatId != null) {
+    return `-${toIdString(candidate.peerId.chatId)}`;
+  }
+  if (candidate.peerId?.userId != null) {
+    return toIdString(candidate.peerId.userId);
+  }
+  if (candidate.chatId != null) {
+    return toIdString(candidate.chatId);
+  }
   return 'unknown';
 }
 
