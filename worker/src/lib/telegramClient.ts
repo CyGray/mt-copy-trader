@@ -179,18 +179,7 @@ export async function startTelegramLogin(phone: string): Promise<void> {
   reauthRequired = false;
   status = 'awaiting_code';
 
-  // Clear any existing session and client to start fresh
-  if (client) {
-    try {
-      await client.disconnect();
-    } catch {
-      // Ignore
-    }
-    client = null;
-  }
-  clearTelegramSession();
-
-  const nextClient = await createClient();
+  const nextClient = await ensureClient();
 
   const codePromise = new Promise<string>((resolve) => {
     codeResolver = resolve;
@@ -199,8 +188,6 @@ export async function startTelegramLogin(phone: string): Promise<void> {
   const passwordPromise = new Promise<string>((resolve) => {
     passwordResolver = resolve;
   });
-
-  client = nextClient;
 
   void nextClient
     .start({
