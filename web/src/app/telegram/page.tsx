@@ -185,6 +185,21 @@ export default function TelegramPage() {
     }
   }, []);
 
+  const handleResetLogin = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await fetch('/api/telegram/logout', { method: 'POST' });
+    } catch {
+      setError('Worker unreachable');
+    } finally {
+      setIsLoading(false);
+      setStep('phone');
+      setOtp('');
+      setPassword('');
+    }
+  }, []);
+
   const renderStep = () => {
     switch (step) {
       case 'phone':
@@ -233,8 +248,11 @@ export default function TelegramPage() {
               placeholder="12345"
             />
             <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setStep('phone')} className="flex-1">
-                Back
+              <Button variant="secondary" onClick={handleResetLogin} isLoading={isLoading} className="flex-1">
+                Change number
+              </Button>
+              <Button variant="secondary" onClick={handlePhoneSubmit} isLoading={isLoading} className="flex-1">
+                Resend code
               </Button>
               <Button onClick={handleOtpSubmit} isLoading={isLoading} className="flex-1">
                 Verify
