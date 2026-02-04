@@ -19,70 +19,6 @@ let reauthRequired = false;
 let phoneNumber: string | null = null;
 let codeResolver: Resolver | null = null;
 let passwordResolver: Resolver | null = null;
-let lastDcRetryAt = 0;
-let lastDcRetryValue: number | null = null;
-
-function getDcFromError(error: unknown): number | null {
-  if (!error) return null;
-  const candidate = error as { newDc?: number; errorMessage?: string };
-  if (typeof candidate.newDc === 'number' && candidate.newDc > 0) {
-    return candidate.newDc;
-  }
-  const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : '';
-  const match = message.match(/DC\s*(\d+)/i);
-  return match ? Number(match[1]) : null;
-}
-
-async function handleDcMigrate(newDc: number): Promise<void> {
-  const now = Date.now();
-  if (lastDcRetryValue === newDc && now - lastDcRetryAt < 60_000) {
-    status = 'error';
-    lastError = `Phone number is associated with DC ${newDc}. Please retry.`;
-    return;
-  }
-
-  lastDcRetryAt = now;
-  lastDcRetryValue = newDc;
-
-  if (client) {
-    const clientWithSwitch = client as unknown as {
-      _switchDC?: (dcId: number) => Promise<void | boolean>;
-      _switchDc?: (dcId: number) => Promise<void | boolean>;
-    };
-    const switchDc = clientWithSwitch._switchDC ?? clientWithSwitch._switchDc;
-    if (typeof switchDc === 'function') {
-      try {
-        await switchDc.call(client, newDc);
-      } catch {
-        try {
-          await client.disconnect();
-        } catch {
-          // Ignore
-        }
-        client = null;
-      }
-    } else {
-      try {
-        await client.disconnect();
-      } catch {
-        // Ignore
-      }
-      client = null;
-    }
-  }
-
-  codeResolver = null;
-  passwordResolver = null;
-  clearTelegramSession();
-  status = 'disconnected';
-  reauthRequired = false;
-  lastError = null;
-
-  if (phoneNumber) {
-    await startTelegramLogin(phoneNumber);
-  }
-}
 
 async function recordError(context: string, error: unknown): Promise<void> {
   const message =
@@ -107,17 +43,6 @@ async function recordError(context: string, error: unknown): Promise<void> {
       context,
       error: message || 'session_expired',
     });
-    return;
-  }
-
-  const migrateDc = getDcFromError(error);
-  if (migrateDc) {
-    await writeSystemLog('warn', 'telegram', 'phone_migrate', {
-      context,
-      error: message || 'phone_migrate',
-      newDc: migrateDc,
-    });
-    await handleDcMigrate(migrateDc);
     return;
   }
 
