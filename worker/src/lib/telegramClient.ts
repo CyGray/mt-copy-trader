@@ -26,6 +26,16 @@ async function recordError(context: string, error: unknown): Promise<void> {
   lastError = message || 'telegram_error';
 
   if (isSessionExpired(error)) {
+    if (client) {
+      try {
+        await client.disconnect();
+      } catch {
+        // Ignore
+      }
+    }
+    client = null;
+    codeResolver = null;
+    passwordResolver = null;
     clearTelegramSession();
     reauthRequired = true;
     status = 'disconnected';
