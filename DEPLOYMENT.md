@@ -8,7 +8,8 @@ This document describes how to update and redeploy the Docker services on the se
 - Repository checked out at /opt/bytrader/mt-copy-trader.
 
 ## Redeploy steps
-1. SSH into the server.
+1. SSH into the server: 
+   - ssh botuser@116.203.224.13
 2. Navigate to the repo:
    - /opt/bytrader/mt-copy-trader
 3. Pull latest changes:

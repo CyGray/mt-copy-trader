@@ -47,15 +47,26 @@ async function run() {
   const data = snap.data() || {};
   const telegram = data.telegram || {};
   const allowed = Array.isArray(telegram.allowed_chat_ids) ? telegram.allowed_chat_ids : [];
+  const blocked = Array.isArray(telegram.blocked_chat_ids) ? telegram.blocked_chat_ids : [];
   const labels = telegram.chat_id_labels || {};
 
   console.log('settings/default.telegram.allowed_chat_ids:', allowed);
+  console.log('settings/default.telegram.blocked_chat_ids:', blocked);
   console.log('settings/default.telegram.chat_id_labels:', labels);
   console.log('classification:');
   for (const id of allowed) {
     const asString = String(id).trim();
     console.log(`  ${asString} (type: ${typeof id}) -> ${classifyId(asString)}`);
     console.log(`    variants: ${expandVariants(asString).join(', ')}`);
+  }
+
+  if (blocked.length) {
+    console.log('blocked classification:');
+    for (const id of blocked) {
+      const asString = String(id).trim();
+      console.log(`  ${asString} (type: ${typeof id}) -> ${classifyId(asString)}`);
+      console.log(`    variants: ${expandVariants(asString).join(', ')}`);
+    }
   }
 }
 

@@ -27,6 +27,7 @@ interface TradingSettings {
 
 interface TelegramSettings {
   chatIds: string[];
+  blockedChatIds: string[];
   chatIdLabels: Record<string, string>;
 }
 
@@ -50,6 +51,7 @@ const DEFAULT_SETTINGS: Settings = {
   },
   telegram: {
     chatIds: [],
+    blockedChatIds: [],
     chatIdLabels: {},
   },
 };
@@ -59,6 +61,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [newChatId, setNewChatId] = useState('');
+  const [newBlockedChatId, setNewBlockedChatId] = useState('');
   const [newChatLabel, setNewChatLabel] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -93,6 +96,10 @@ export default function SettingsPage() {
         },
         telegram: {
           chatIds: (telegram.allowed_chat_ids as string[]) ?? (telegram.chatIds as string[]) ?? DEFAULT_SETTINGS.telegram.chatIds,
+          blockedChatIds:
+            (telegram.blocked_chat_ids as string[]) ??
+            (telegram.blockedChatIds as string[]) ??
+            DEFAULT_SETTINGS.telegram.blockedChatIds,
           chatIdLabels: (telegram.chat_id_labels as Record<string, string>) ?? (telegram.chatIdLabels as Record<string, string>) ?? DEFAULT_SETTINGS.telegram.chatIdLabels,
         },
       };
@@ -124,6 +131,7 @@ export default function SettingsPage() {
     setSettings((prev) => ({
       ...prev,
       telegram: {
+        ...prev.telegram,
         chatIds: prev.telegram.chatIds.includes(trimmedId)
           ? prev.telegram.chatIds
           : [...prev.telegram.chatIds, trimmedId],
@@ -146,11 +154,39 @@ export default function SettingsPage() {
       return {
         ...prev,
         telegram: {
+          ...prev.telegram,
           chatIds: prev.telegram.chatIds.filter((id) => id !== chatId),
           chatIdLabels: newLabels,
         },
       };
     });
+    setHasChanges(true);
+  }, []);
+
+  const addBlockedChat = useCallback(() => {
+    if (!newBlockedChatId.trim()) return;
+    const trimmedId = newBlockedChatId.trim();
+    setSettings((prev) => ({
+      ...prev,
+      telegram: {
+        ...prev.telegram,
+        blockedChatIds: prev.telegram.blockedChatIds.includes(trimmedId)
+          ? prev.telegram.blockedChatIds
+          : [...prev.telegram.blockedChatIds, trimmedId],
+      },
+    }));
+    setNewBlockedChatId('');
+    setHasChanges(true);
+  }, [newBlockedChatId]);
+
+  const removeBlockedChat = useCallback((chatId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      telegram: {
+        ...prev.telegram,
+        blockedChatIds: prev.telegram.blockedChatIds.filter((id) => id !== chatId),
+      },
+    }));
     setHasChanges(true);
   }, []);
 
@@ -181,6 +217,7 @@ export default function SettingsPage() {
           },
           telegram: {
             allowed_chat_ids: settings.telegram.chatIds,
+            blocked_chat_ids: settings.telegram.blockedChatIds,
             chat_id_labels: settings.telegram.chatIdLabels,
           },
         },
@@ -315,7 +352,13 @@ export default function SettingsPage() {
           title="Telegram Channels"
           icon={<MessageCircle className="h-4 w-4" />}
           defaultOpen
-          badge={<StatusBadge status="success" label={`${settings.telegram.chatIds.length} channels`} size="sm" />}
+          badge={
+            <StatusBadge
+              status="success"
+              label={`${settings.telegram.chatIds.length} allow / ${settings.telegram.blockedChatIds.length} block`}
+              size="sm"
+            />
+          }
         >
           <div className="space-y-4">
             {/* Current Chats */}
@@ -366,6 +409,41 @@ export default function SettingsPage() {
                 <Plus className="mr-1 h-4 w-4" />
                 Add
               </Button>
+            </div>
+
+            <div className="rounded-lg border border-marine-navy/10 bg-marine-mist/30 p-3">
+              <p className="mb-2 text-xs font-medium text-marine-navy/70">Blocked Chat IDs</p>
+              <div className="space-y-2">
+                {settings.telegram.blockedChatIds.map((chatId) => (
+                  <div
+                    key={`blocked-${chatId}`}
+                    className="flex items-center justify-between rounded border border-red-200 bg-red-50/50 px-3 py-2"
+                  >
+                    <p className="font-mono text-[11px] text-marine-navy/70">{chatId}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeBlockedChat(chatId)}
+                      className="text-red-500 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    placeholder="Blocked Chat ID"
+                    value={newBlockedChatId}
+                    onChange={(e) => setNewBlockedChatId(e.target.value)}
+                    className="flex-1 rounded border border-marine-navy/20 px-3 py-2 text-sm focus:border-marine-accent focus:outline-none"
+                  />
+                  <Button variant="secondary" size="sm" onClick={addBlockedChat}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Block
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </CollapsibleSection>

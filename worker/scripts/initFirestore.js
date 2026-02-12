@@ -34,7 +34,10 @@ async function ensureBaseCollections() {
       created_at: new Date().toISOString(),
       trading: {},
       notifications: {},
-      telegram: {},
+      telegram: {
+        allowed_chat_ids: [],
+        blocked_chat_ids: [],
+      },
     });
   }
 
