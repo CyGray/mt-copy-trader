@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { decryptText, encryptText } from './crypto';
+import { logger } from './logger';
 
 const DEFAULT_SESSION_PATH = path.resolve(
   process.cwd(),
@@ -16,8 +17,16 @@ function getSessionPath(): string {
 export function loadTelegramSession(): string | null {
   const sessionPath = getSessionPath();
   if (!fs.existsSync(sessionPath)) return null;
-  const encrypted = fs.readFileSync(sessionPath, 'utf8');
-  return decryptText(encrypted);
+  try {
+    const encrypted = fs.readFileSync(sessionPath, 'utf8');
+    return decryptText(encrypted);
+  } catch (error) {
+    logger.warn('telegram_session_unreadable', {
+      path: sessionPath,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
 }
 
 export function saveTelegramSession(session: string): void {
