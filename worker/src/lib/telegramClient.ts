@@ -6,23 +6,73 @@ import { writeSystemLog } from './systemLog';
 export type TelegramStatus =
   | 'disconnected'
   | 'awaiting_code'
+  | 'awaiting_qr'
   | 'awaiting_password'
   | 'authorized'
   | 'error';
 
 type Resolver = (value: string) => void;
 
+interface InputQueue {
+  request(): Promise<string>;
+  submit(value: string): void;
+  reset(): void;
+}
+
+function createInputQueue(): InputQueue {
+  let resolver: Resolver | null = null;
+  let buffered: string | null = null;
+
+  return {
+    request(): Promise<string> {
+      if (buffered !== null) {
+        const value = buffered;
+        buffered = null;
+        return Promise.resolve(value);
+      }
+      return new Promise<string>((resolve) => {
+        resolver = resolve;
+      });
+    },
+    submit(value: string): void {
+      if (resolver) {
+        const resolve = resolver;
+        resolver = null;
+        resolve(value);
+        return;
+      }
+      buffered = value;
+    },
+    reset(): void {
+      resolver = null;
+      buffered = null;
+    },
+  };
+}
+
+const RETRYABLE_AUTH_ERRORS = [
+  'PHONE_CODE_INVALID',
+  'PHONE_CODE_EMPTY',
+  'PASSWORD_HASH_INVALID',
+];
+
+function errorMessageOf(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : '';
+}
+
 let client: TelegramClient | null = null;
 let status: TelegramStatus = 'disconnected';
 let lastError: string | null = null;
 let reauthRequired = false;
 let phoneNumber: string | null = null;
-let codeResolver: Resolver | null = null;
-let passwordResolver: Resolver | null = null;
+let qrLink: string | null = null;
+let qrExpiresAt: string | null = null;
+const codeInput = createInputQueue();
+const passwordInput = createInputQueue();
 
 async function recordError(context: string, error: unknown): Promise<void> {
-  const message =
-    error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+  const message = errorMessageOf(error);
   lastError = message || 'telegram_error';
 
   if (isSessionExpired(error)) {
@@ -93,30 +143,26 @@ export async function startTelegramLogin(phone: string): Promise<void> {
   lastError = null;
   reauthRequired = false;
   status = 'awaiting_code';
+  codeInput.reset();
+  passwordInput.reset();
 
   const nextClient = await ensureClient();
-
-  const codePromise = new Promise<string>((resolve) => {
-    codeResolver = resolve;
-  });
-
-  const passwordPromise = new Promise<string>((resolve) => {
-    passwordResolver = resolve;
-  });
 
   void nextClient
     .start({
       phoneNumber: async () => phoneNumber ?? phone,
       phoneCode: async () => {
         status = 'awaiting_code';
-        return codePromise;
+        return codeInput.request();
       },
       password: async () => {
         status = 'awaiting_password';
-        return passwordPromise;
+        return passwordInput.request();
       },
-      onError: (err) => {
-        void recordError('start_login', err);
+      onError: async (err) => {
+        await recordError('start_login', err);
+        const message = errorMessageOf(err);
+        return !RETRYABLE_AUTH_ERRORS.some((code) => message.includes(code));
       },
     })
     .then(() => {
@@ -124,26 +170,93 @@ export async function startTelegramLogin(phone: string): Promise<void> {
       saveTelegramSession(sessionString);
       status = 'authorized';
       reauthRequired = false;
+      codeInput.reset();
+      passwordInput.reset();
     })
     .catch((err) => {
       void recordError('start_login', err);
     });
 }
 
+export interface QrLoginState {
+  status: TelegramStatus;
+  link: string | null;
+  expiresAt: string | null;
+  lastError: string | null;
+  reauthRequired: boolean;
+}
+
+export async function startTelegramQrLogin(): Promise<void> {
+  if (status === 'awaiting_qr' || status === 'authorized') {
+    return;
+  }
+
+  const { apiId, apiHash } = getApiConfig();
+  lastError = null;
+  reauthRequired = false;
+  qrLink = null;
+  qrExpiresAt = null;
+  status = 'awaiting_qr';
+  passwordInput.reset();
+
+  const nextClient = await ensureClient();
+
+  void nextClient
+    .signInUserWithQrCode(
+      { apiId, apiHash },
+      {
+        qrCode: async ({ token, expires }) => {
+          qrLink = `tg://login?token=${token.toString('base64url')}`;
+          qrExpiresAt = new Date(expires * 1000).toISOString();
+          status = 'awaiting_qr';
+        },
+        password: async () => {
+          status = 'awaiting_password';
+          return passwordInput.request();
+        },
+        onError: async (err) => {
+          await recordError('qr_login', err);
+          const message = errorMessageOf(err);
+          return !RETRYABLE_AUTH_ERRORS.some((code) => message.includes(code));
+        },
+      },
+    )
+    .then(() => {
+      const sessionString = (nextClient.session as StringSession).save();
+      saveTelegramSession(sessionString);
+      status = 'authorized';
+      reauthRequired = false;
+      qrLink = null;
+      qrExpiresAt = null;
+      passwordInput.reset();
+    })
+    .catch((err) => {
+      void recordError('qr_login', err);
+    });
+}
+
+export function getQrLoginState(): QrLoginState {
+  return {
+    status,
+    link: qrLink,
+    expiresAt: qrExpiresAt,
+    lastError,
+    reauthRequired,
+  };
+}
+
 export function submitTelegramCode(code: string): void {
-  if (!codeResolver) {
+  if (status !== 'awaiting_code') {
     throw new Error('No pending code request.');
   }
-  codeResolver(code);
-  codeResolver = null;
+  codeInput.submit(code);
 }
 
 export function submitTelegramPassword(password: string): void {
-  if (!passwordResolver) {
+  if (status !== 'awaiting_password') {
     throw new Error('No pending password request.');
   }
-  passwordResolver(password);
-  passwordResolver = null;
+  passwordInput.submit(password);
 }
 
 export async function getTelegramStatus(): Promise<{
@@ -190,8 +303,12 @@ export async function logoutTelegram(): Promise<void> {
   }
   client = null;
   phoneNumber = null;
+  qrLink = null;
+  qrExpiresAt = null;
   lastError = null;
   reauthRequired = false;
   status = 'disconnected';
+  codeInput.reset();
+  passwordInput.reset();
   clearTelegramSession();
 }

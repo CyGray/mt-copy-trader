@@ -7,9 +7,11 @@ import { initFirestore } from './lib/firestoreAdmin';
 import { logger } from './lib/logger';
 import { writeSystemLog } from './lib/systemLog';
 import {
+  getQrLoginState,
   getTelegramStatus,
   logoutTelegram,
   startTelegramLogin,
+  startTelegramQrLogin,
   submitTelegramCode,
   submitTelegramPassword,
 } from './lib/telegramClient';
@@ -35,6 +37,19 @@ app.get('/health', async (_req, res) => {
 app.get('/telegram/status', async (_req, res) => {
   const status = await getTelegramStatus();
   res.json(status);
+});
+
+app.get('/telegram/qr', (_req, res) => {
+  res.json(getQrLoginState());
+});
+
+app.post('/telegram/qr', async (_req, res) => {
+  try {
+    await startTelegramQrLogin();
+    return res.json(getQrLoginState());
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to start QR login' });
+  }
 });
 
 app.post('/telegram/start', async (req, res) => {
