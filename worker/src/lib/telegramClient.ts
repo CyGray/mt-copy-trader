@@ -135,7 +135,11 @@ export async function getTelegramClient(): Promise<TelegramClient> {
 }
 
 export async function startTelegramLogin(phone: string): Promise<void> {
-  if (status === 'awaiting_code' || status === 'awaiting_password') {
+  if (
+    status === 'awaiting_code' ||
+    status === 'awaiting_password' ||
+    status === 'awaiting_qr'
+  ) {
     return;
   }
 
@@ -170,6 +174,7 @@ export async function startTelegramLogin(phone: string): Promise<void> {
       saveTelegramSession(sessionString);
       status = 'authorized';
       reauthRequired = false;
+      lastError = null;
       codeInput.reset();
       passwordInput.reset();
     })
@@ -187,7 +192,12 @@ export interface QrLoginState {
 }
 
 export async function startTelegramQrLogin(): Promise<void> {
-  if (status === 'awaiting_qr' || status === 'authorized') {
+  if (
+    status === 'awaiting_qr' ||
+    status === 'awaiting_code' ||
+    status === 'awaiting_password' ||
+    status === 'authorized'
+  ) {
     return;
   }
 
@@ -226,6 +236,7 @@ export async function startTelegramQrLogin(): Promise<void> {
       saveTelegramSession(sessionString);
       status = 'authorized';
       reauthRequired = false;
+      lastError = null;
       qrLink = null;
       qrExpiresAt = null;
       passwordInput.reset();
@@ -272,6 +283,7 @@ export async function getTelegramStatus(): Promise<{
       if (me) {
         status = 'authorized';
         reauthRequired = false;
+        lastError = null;
       }
     } catch (err) {
       if (loadTelegramSession()) {
