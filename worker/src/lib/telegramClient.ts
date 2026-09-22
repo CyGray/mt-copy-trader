@@ -1,6 +1,7 @@
 import { Api, TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { clearTelegramSession, loadTelegramSession, saveTelegramSession } from './telegramSession';
+import { logger } from './logger';
 import { writeSystemLog } from './systemLog';
 
 export type TelegramStatus =
@@ -61,6 +62,15 @@ function errorMessageOf(error: unknown): string {
   return typeof error === 'string' ? error : '';
 }
 
+const FLOOD_SLEEP_THRESHOLD_SECONDS = 120;
+const STATUS_PROBE_COOLDOWN_MS = 60_000;
+const FLOOD_COOLDOWN_BUFFER_MS = 2_000;
+
+function floodWaitSecondsOf(error: unknown): number | null {
+  const match = /FLOOD_WAIT_(\d+)/.exec(errorMessageOf(error));
+  return match ? Number(match[1]) : null;
+}
+
 let client: TelegramClient | null = null;
 let status: TelegramStatus = 'disconnected';
 let lastError: string | null = null;
@@ -68,11 +78,52 @@ let reauthRequired = false;
 let phoneNumber: string | null = null;
 let qrLink: string | null = null;
 let qrExpiresAt: string | null = null;
+let floodWaitUntil = 0;
+let lastStatusProbeAt = 0;
+let statusProbeInFlight: Promise<void> | null = null;
+let authorizedHandler: (() => void) | null = null;
 const codeInput = createInputQueue();
 const passwordInput = createInputQueue();
 
+export function setAuthorizedHandler(handler: (() => void) | null): void {
+  authorizedHandler = handler;
+}
+
+function markAuthorized(): void {
+  status = 'authorized';
+  reauthRequired = false;
+  lastError = null;
+
+  if (!authorizedHandler) return;
+  try {
+    authorizedHandler();
+  } catch (error) {
+    logger.warn('telegram_authorized_handler_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 async function recordError(context: string, error: unknown): Promise<void> {
   const message = errorMessageOf(error);
+  const floodSeconds = floodWaitSecondsOf(error);
+
+  if (floodSeconds !== null) {
+    floodWaitUntil = Date.now() + floodSeconds * 1000 + FLOOD_COOLDOWN_BUFFER_MS;
+    lastError = `FLOOD_WAIT_${floodSeconds}`;
+    logger.warn('telegram_flood_wait', {
+      context,
+      seconds: floodSeconds,
+      retry_at: new Date(floodWaitUntil).toISOString(),
+    });
+    await writeSystemLog('warn', 'telegram', 'flood_wait', {
+      context,
+      seconds: floodSeconds,
+      retry_at: new Date(floodWaitUntil).toISOString(),
+    });
+    return;
+  }
+
   lastError = message || 'telegram_error';
 
   if (isSessionExpired(error)) {
@@ -114,10 +165,16 @@ function getApiConfig(): { apiId: number; apiHash: string } {
 }
 
 async function createClient(sessionString?: string | null): Promise<TelegramClient> {
+  const remainingMs = floodWaitUntil - Date.now();
+  if (remainingMs > 0) {
+    throw new Error(`FLOOD_WAIT_${Math.ceil(remainingMs / 1000)}`);
+  }
+
   const { apiId, apiHash } = getApiConfig();
   const session = new StringSession(sessionString ?? '');
   const nextClient = new TelegramClient(session, apiId, apiHash, {
     connectionRetries: 3,
+    floodSleepThreshold: FLOOD_SLEEP_THRESHOLD_SECONDS,
   });
   await nextClient.connect();
   return nextClient;
@@ -172,11 +229,9 @@ export async function startTelegramLogin(phone: string): Promise<void> {
     .then(() => {
       const sessionString = (nextClient.session as StringSession).save();
       saveTelegramSession(sessionString);
-      status = 'authorized';
-      reauthRequired = false;
-      lastError = null;
       codeInput.reset();
       passwordInput.reset();
+      markAuthorized();
     })
     .catch((err) => {
       void recordError('start_login', err);
@@ -234,12 +289,10 @@ export async function startTelegramQrLogin(): Promise<void> {
     .then(() => {
       const sessionString = (nextClient.session as StringSession).save();
       saveTelegramSession(sessionString);
-      status = 'authorized';
-      reauthRequired = false;
-      lastError = null;
       qrLink = null;
       qrExpiresAt = null;
       passwordInput.reset();
+      markAuthorized();
     })
     .catch((err) => {
       void recordError('qr_login', err);
@@ -270,26 +323,41 @@ export function submitTelegramPassword(password: string): void {
   passwordInput.submit(password);
 }
 
+async function probeAuthorization(): Promise<void> {
+  if (statusProbeInFlight) return statusProbeInFlight;
+
+  const now = Date.now();
+  if (now < floodWaitUntil) return;
+  if (now - lastStatusProbeAt < STATUS_PROBE_COOLDOWN_MS) return;
+  if (!loadTelegramSession()) return;
+
+  lastStatusProbeAt = now;
+
+  statusProbeInFlight = (async () => {
+    try {
+      const nextClient = await ensureClient();
+      const me = await nextClient.getMe();
+      if (me) markAuthorized();
+    } catch (err) {
+      if (loadTelegramSession()) {
+        await recordError('status_check', err);
+      }
+    } finally {
+      statusProbeInFlight = null;
+    }
+  })();
+
+  return statusProbeInFlight;
+}
+
 export async function getTelegramStatus(): Promise<{
   status: TelegramStatus;
   phone: string | null;
   lastError: string | null;
   reauthRequired: boolean;
 }> {
-  if (status === 'disconnected') {
-    try {
-      const nextClient = await ensureClient();
-      const me = await nextClient.getMe();
-      if (me) {
-        status = 'authorized';
-        reauthRequired = false;
-        lastError = null;
-      }
-    } catch (err) {
-      if (loadTelegramSession()) {
-        await recordError('status_check', err);
-      }
-    }
+  if (status === 'disconnected' || status === 'error') {
+    await probeAuthorization();
   }
 
   return { status, phone: phoneNumber, lastError, reauthRequired };

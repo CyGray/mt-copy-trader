@@ -8,7 +8,7 @@ import { parseTelegramSignal } from './telegramParser';
 import { getTelegramClient, getTelegramStatus } from './telegramClient';
 import { handleParsedSignal } from './tradeEngine';
 
-let listenerStarted = false;
+let attachedClient: TelegramClient | null = null;
 let lastSettingsFetch = 0;
 let cachedAllowedChatIds: string[] | null = null;
 let cachedBlockedChatIds: string[] | null = null;
@@ -491,9 +491,12 @@ async function getTelegramChatFilters(): Promise<{ allowedChatIds: string[]; blo
   }
 }
 
-export async function startTelegramListener(): Promise<void> {
-  if (listenerStarted) return;
+function isRawDebugEnabled(): boolean {
+  const flag = process.env.TELEGRAM_RAW_DEBUG;
+  return flag === '1' || flag === 'true';
+}
 
+export async function startTelegramListener(): Promise<void> {
   const status = await getTelegramStatus();
   if (status.status !== 'authorized') {
     await writeSystemLog('warn', 'telegram_listener', 'listener_not_authorized', {
@@ -504,6 +507,8 @@ export async function startTelegramListener(): Promise<void> {
   }
 
   const client = await getTelegramClient();
+  if (attachedClient === client) return;
+
   const me = await client.getMe();
   const selfUserId = me?.id ? toIdString(me.id) : null;
 
@@ -546,8 +551,11 @@ export async function startTelegramListener(): Promise<void> {
   };
 
   client.addEventHandler((event) => handler(event, event.message && 'editDate' in event.message ? 'edit' : 'new'), new NewMessage({}));
-  client.addEventHandler(rawHandler, new Raw({}));
 
-  listenerStarted = true;
+  if (isRawDebugEnabled()) {
+    client.addEventHandler(rawHandler, new Raw({}));
+  }
+
+  attachedClient = client;
   await writeSystemLog('info', 'telegram_listener', 'listener_started');
 }

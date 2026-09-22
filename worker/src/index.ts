@@ -10,11 +10,19 @@ import {
   getQrLoginState,
   getTelegramStatus,
   logoutTelegram,
+  setAuthorizedHandler,
   startTelegramLogin,
   startTelegramQrLogin,
   submitTelegramCode,
   submitTelegramPassword,
 } from './lib/telegramClient';
+import {
+  acquireInstanceLock,
+  getInstanceId,
+  holdsInstanceLock,
+  releaseInstanceLock,
+  startInstanceLockHeartbeat,
+} from './lib/instanceLock';
 import { startTelegramListener } from './lib/telegramListener';
 
 const app = express();
@@ -61,7 +69,7 @@ app.post('/telegram/start', async (req, res) => {
   try {
     await startTelegramLogin(phone);
     const status = await getTelegramStatus();
-    if (status.status === 'authorized') {
+    if (status.status === 'authorized' && holdsInstanceLock()) {
       await startTelegramListener();
     }
     return res.json(status);
@@ -79,7 +87,7 @@ app.post('/telegram/verify-otp', async (req, res) => {
   try {
     submitTelegramCode(code);
     const status = await getTelegramStatus();
-    if (status.status === 'authorized') {
+    if (status.status === 'authorized' && holdsInstanceLock()) {
       await startTelegramListener();
     }
     return res.json(status);
@@ -97,7 +105,7 @@ app.post('/telegram/verify-password', async (req, res) => {
   try {
     submitTelegramPassword(password);
     const status = await getTelegramStatus();
-    if (status.status === 'authorized') {
+    if (status.status === 'authorized' && holdsInstanceLock()) {
       await startTelegramListener();
     }
     return res.json(status);
@@ -111,19 +119,53 @@ app.post('/telegram/logout', async (_req, res) => {
   res.json({ status: 'disconnected' });
 });
 
-app.listen(port, () => {
-  logger.info('worker_started', { port });
-  void writeSystemLog('info', 'worker', 'worker_started', { port });
-  setInterval(async () => {
-    try {
-      const status = await getTelegramStatus();
-      if (status.status === 'authorized') {
-        await startTelegramListener();
-      }
-    } catch (error) {
-      logger.warn('telegram_listener_check_failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+async function ensureTelegramListener(): Promise<void> {
+  if (!holdsInstanceLock()) return;
+
+  try {
+    const status = await getTelegramStatus();
+    if (status.status === 'authorized') {
+      await startTelegramListener();
     }
-  }, 10000);
+  } catch (error) {
+    logger.warn('telegram_listener_check_failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+async function bootstrapTelegram(): Promise<void> {
+  const acquired = await acquireInstanceLock();
+  if (!acquired) {
+    logger.warn('worker_instance_lock_held', { instanceId: getInstanceId() });
+    await writeSystemLog('warn', 'worker', 'instance_lock_held', {
+      instanceId: getInstanceId(),
+    });
+    return;
+  }
+
+  startInstanceLockHeartbeat();
+  await ensureTelegramListener();
+}
+
+app.listen(port, () => {
+  logger.info('worker_started', { port, instanceId: getInstanceId() });
+  void writeSystemLog('info', 'worker', 'worker_started', {
+    port,
+    instanceId: getInstanceId(),
+  });
+
+  setAuthorizedHandler(() => {
+    void ensureTelegramListener();
+  });
+
+  void bootstrapTelegram();
 });
+
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    void releaseInstanceLock().finally(() => {
+      process.exit(0);
+    });
+  });
+}
