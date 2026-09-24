@@ -10,7 +10,7 @@ import { parseGoldSignal } from './vipSignalParser';
 import { forwardGoldSignal } from './signalForwarding';
 import { getTelegramClient, getTelegramStatus } from './telegramClient';
 import { handleParsedSignal } from './tradeEngine';
-import { cancelGoldTrade, handleGoldSignal } from './mt5TradeEngine';
+import { publishSignalEvent } from './signalEvents';
 
 let listenerStarted = false;
 let lastSettingsFetch = 0;
@@ -337,24 +337,28 @@ async function logTelegramMessage(
     const goldSignal = parseGoldSignal(text);
     if (goldSignal.ok) {
       await forwardGoldSignal(chatId, messageId, goldSignal.signal, hash);
-      // MT5 execution — runs alongside signal forwarding
-      try {
-        await handleGoldSignal({
-          chatId,
-          messageId,
-          messageDate,
-          signal: goldSignal.signal,
-        });
-      } catch (error) {
-        logger.error('mt5_trade_engine_failed', {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        await writeSystemLog('error', 'telegram_listener', 'mt5_trade_engine_failed', {
-          chatId,
-          messageId,
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      // Hand the signal off to the AutoTrader service via Firestore.
+      await publishSignalEvent({
+        chatId,
+        messageId,
+        messageType: type,
+        textHash: hash,
+        kind: 'signal',
+        signal: goldSignal.signal,
+        messageDate,
+      });
+    } else if (type === 'edit') {
+      // An edit that no longer parses means the source pulled/cancelled the
+      // signal — let the AutoTrader close any position it opened for it.
+      await publishSignalEvent({
+        chatId,
+        messageId,
+        messageType: type,
+        textHash: hash,
+        kind: 'cancel',
+        signal: null,
+        messageDate,
+      });
     }
   }
 
@@ -554,27 +558,6 @@ export async function startTelegramListener(): Promise<void> {
       const messageId = getMessageId(event.message);
       logger.info('telegram_message_received', { chatId, messageId, type });
       await logTelegramMessage(type, event.message, client);
-
-      // On edits: if the message text no longer parses as a gold signal,
-      // request cancellation of any open position from the original signal.
-      if (type === 'edit') {
-        const text = getMessageText(event.message);
-        if (text) {
-          const { parseGoldSignal: pg } = await import('./vipSignalParser.js');
-          const goldSignal = pg(text);
-          if (!goldSignal.ok) {
-            try {
-              await cancelGoldTrade(chatId, messageId);
-            } catch (cancelErr) {
-              logger.warn('mt5_cancel_on_edit_failed', {
-                chatId,
-                messageId,
-                error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr),
-              });
-            }
-          }
-        }
-      }
     } catch (error) {
       logger.error('telegram_listener_error', {
         error: error instanceof Error ? error.message : String(error),

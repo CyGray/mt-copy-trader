@@ -15,20 +15,24 @@ SYSTEMD_DIR="/etc/systemd/system"
 
 echo "[ByTrader] Installing systemd service units..."
 
-cp "$DEPLOY_DIR/mt5-xvfb.service"       "$SYSTEMD_DIR/"
-cp "$DEPLOY_DIR/bytrader-worker.service" "$SYSTEMD_DIR/"
+cp "$DEPLOY_DIR/mt5-xvfb.service"           "$SYSTEMD_DIR/"
+cp "$DEPLOY_DIR/bytrader-worker.service"    "$SYSTEMD_DIR/"
+cp "$DEPLOY_DIR/bytrader-autotrader.service" "$SYSTEMD_DIR/"
 
 systemctl daemon-reload
 
 systemctl enable mt5-xvfb.service
 systemctl enable bytrader-worker.service
+systemctl enable bytrader-autotrader.service
 
 echo "[ByTrader] Services installed and enabled."
 echo ""
 echo "Start with:"
 echo "  sudo systemctl start mt5-xvfb"
-echo "  sudo systemctl start bytrader-worker"
+echo "  sudo systemctl start bytrader-worker      # Telegram forwarder"
+echo "  sudo systemctl start bytrader-autotrader  # MT5 execution"
 echo ""
 echo "Check status:"
 echo "  sudo journalctl -u bytrader-worker -f"
-echo "  sudo journalctl -u bytrader-mt5 -f"
+echo "  sudo journalctl -u bytrader-autotrader -f"
+echo "  sudo journalctl -u mt5-xvfb -f"

@@ -24,6 +24,8 @@ export type Mt5Config = {
   magic: number;
   deviation: number;
   volume: number;
+  /** Telegram chat IDs whose gold signals should be executed on MT5 */
+  sourceChatIds: string[];
 };
 
 const DEFAULT_CONFIG: Mt5Config = {
@@ -33,6 +35,7 @@ const DEFAULT_CONFIG: Mt5Config = {
   magic: 98801,
   deviation: 20,
   volume: 0.05,
+  sourceChatIds: ['-1003271337051'],
 };
 
 const CONFIG_TTL_MS = 30_000;
@@ -65,6 +68,9 @@ export async function getMt5Config(): Promise<Mt5Config> {
 
     const symbolBase = toStr(raw.symbol_base, DEFAULT_CONFIG.symbolBase);
     const symbolSuffix = typeof raw.symbol_suffix === 'string' ? raw.symbol_suffix : DEFAULT_CONFIG.symbolSuffix;
+    const sourceChatIds = Array.isArray(raw.source_chat_ids)
+      ? (raw.source_chat_ids as Array<string | number>).map((id) => String(id).trim()).filter((id) => id.length > 0)
+      : DEFAULT_CONFIG.sourceChatIds;
 
     cachedConfig = {
       symbolBase,
@@ -73,6 +79,7 @@ export async function getMt5Config(): Promise<Mt5Config> {
       magic: toNum(raw.magic, DEFAULT_CONFIG.magic),
       deviation: toNum(raw.deviation, DEFAULT_CONFIG.deviation),
       volume: toNum(raw.volume, DEFAULT_CONFIG.volume),
+      sourceChatIds,
     };
     lastFetch = now;
     return cachedConfig;

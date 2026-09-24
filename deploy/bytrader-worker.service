@@ -1,7 +1,6 @@
 [Unit]
-Description=ByTrader Node.js Worker (Telegram → MT5 Bridge)
-After=network.target mt5-xvfb.service
-Wants=mt5-xvfb.service
+Description=ByTrader Signal Forwarder (Telegram → Telegram)
+After=network.target
 
 [Service]
 Type=simple
@@ -12,7 +11,7 @@ WorkingDirectory=/home/kyle/projects/ByTrader/worker
 # Load environment from the .env.local file
 EnvironmentFile=/home/kyle/projects/ByTrader/.env.local
 
-# Start the compiled worker (build first with: npm run build --workspace worker)
+# Start the compiled forwarder (build first with: npm run build --workspace worker)
 ExecStart=/usr/bin/node dist/index.js
 
 Restart=always
@@ -29,7 +28,7 @@ LimitNOFILE=65536
 # Journal logging
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=bytrader-worker
+SyslogIdentifier=bytrader-forwarder
 
 [Install]
 WantedBy=multi-user.target

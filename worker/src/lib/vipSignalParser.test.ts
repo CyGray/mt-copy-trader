@@ -18,6 +18,7 @@ TP4 : 3987`;
       expect(result.signal).toEqual({
         symbol: 'XAUUSD',
         direction: 'sell',
+        orderType: 'market',
         entryLow: 4028,
         entryHigh: 4032,
         stopLoss: 4040,
@@ -123,6 +124,20 @@ TP2 : 4465`);
     if (result.ok) {
       expect(result.signal.symbol).toBe('XAUUSD');
       expect(result.signal.direction).toBe('sell');
+    }
+  });
+
+  it('detects a pending BUY LIMIT order type', () => {
+    const result = parseGoldSignal(`BUY LIMIT XAUUSD
+
+OPEN : 4100-4102
+SL : 4090
+TP1 : 4110
+TP2 : 4120`);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.signal.orderType).toBe('buy_limit');
+      expect(result.signal.direction).toBe('buy');
     }
   });
 

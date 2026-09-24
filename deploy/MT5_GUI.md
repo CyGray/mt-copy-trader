@@ -41,8 +41,17 @@ Ports: VNC `127.0.0.1:5900`, web console `127.0.0.1:6080`.
 2. Attach `VantageBridgeEA` to an **XAUUSD M1** chart with **Allow DLL imports** and
    **AutoTrading** enabled; set `InpMagicNumber` / `InpEndpoint` as needed.
 3. Set `settings/default.mt5` in Firestore (`symbol_suffix`, `magic`, `volume`, …).
-4. Then rebuild + restart the worker so it ships the MT5 execution path:
-   `cd ~/projects/ByTrader/worker && npx tsc -p tsconfig.json && systemctl --user restart bytrader-worker.service`
+4. Then rebuild and restart the **AutoTrader** service so it ships the MT5
+   execution path (the forwarder is unrelated — see `deploy/SERVICES.md`):
+   ```bash
+   cd ~/projects/ByTrader/worker && npx tsc -p tsconfig.json
+   systemctl --user restart bytrader-autotrader.service
+   curl -s localhost:4001/health   # mt5Bridge should read "ok" once the EA is attached
+   ```
+
+> **Two services:** `bytrader-worker.service` (port 4000) is the Telegram
+> forwarder; `bytrader-autotrader.service` (port 4001) is the MT5 execution
+> side. They are independent — restarting one does not touch the other.
 
 > `sudo` is required for the *system-wide* systemd units in `deploy/install-services.sh`;
 > the GUI toggle and worker service do not need it.
