@@ -35,6 +35,21 @@ ssh -N -L 6080:127.0.0.1:6080 kyle@vmi3564509
 
 Ports: VNC `127.0.0.1:5900`, web console `127.0.0.1:6080`.
 
+## Agent Hub preview (preferred)
+
+The MT5 GUI is registered as a **project service** in the Agent Hub, so you can
+start it from the UI instead of the manual toggle:
+
+1. Open any **ByTrader** conversation in the Hub.
+2. Conversation actions → **Preview** tab → **Start**.
+3. Click **Open**, or browse the preview URL —
+   `https://vmi3564509.tail6b5d4c.ts.net:8445` (Tailscale Serve → `127.0.0.1:6080`).
+
+It **shuts itself down after 3 minutes with no connected VNC client**
+(`MT5_IDLE_SECS`, default `180`); the Hub **Stop** button tears it down
+immediately. Backed by `deploy/mt5-preview.sh`; the manual `mt5-gui.sh` toggle
+still works if you need it outside the Hub.
+
 ## Remaining steps (need you)
 
 1. **Log in to the Vantage account** in the MT5 GUI (no credentials are stored on the box).
