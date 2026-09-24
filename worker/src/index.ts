@@ -14,6 +14,8 @@ import {
   submitTelegramPassword,
 } from './lib/telegramClient';
 import { startTelegramListener } from './lib/telegramListener';
+import { startLifecycleManager, stopLifecycleManager, isLifecycleManagerRunning } from './lib/lifecycleManager';
+import { mt5HealthCheck } from './lib/mt5Client';
 
 const app = express();
 const port = Number(process.env.WORKER_PORT ?? 4000);
@@ -23,13 +25,22 @@ app.use(express.json());
 app.get('/health', async (_req, res) => {
   const firestoreStatus = await initFirestore();
   const telegramStatus = await getTelegramStatus();
+  const mt5Status = await mt5HealthCheck();
   res.json({
     status: 'ok',
     firestore: firestoreStatus ? 'ok' : 'error',
     telegram: telegramStatus.status,
     telegramReauthRequired: telegramStatus.reauthRequired,
+    mt5Bridge: mt5Status.healthy ? 'ok' : 'unreachable',
+    mt5LatencyMs: mt5Status.latencyMs ?? null,
+    lifecycleManager: isLifecycleManagerRunning() ? 'running' : 'stopped',
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/mt5/health', async (_req, res) => {
+  const mt5Status = await mt5HealthCheck();
+  res.json(mt5Status);
 });
 
 app.get('/telegram/status', async (_req, res) => {
@@ -99,6 +110,11 @@ app.post('/telegram/logout', async (_req, res) => {
 app.listen(port, () => {
   logger.info('worker_started', { port });
   void writeSystemLog('info', 'worker', 'worker_started', { port });
+
+  // Start lifecycle manager (handles MT5 being offline gracefully)
+  startLifecycleManager(Number(process.env.LIFECYCLE_INTERVAL_MS ?? 2000));
+
+  // Periodic Telegram listener health check
   setInterval(async () => {
     try {
       const status = await getTelegramStatus();
@@ -112,3 +128,14 @@ app.listen(port, () => {
     }
   }, 10000);
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  stopLifecycleManager();
+  process.exit(0);
+});
+process.on('SIGINT', () => {
+  stopLifecycleManager();
+  process.exit(0);
+});
+

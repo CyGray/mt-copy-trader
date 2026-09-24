@@ -1,0 +1,35 @@
+[Unit]
+Description=MT5 Virtual Display + Wine Runtime (ByTrader)
+After=network.target
+Wants=network.target
+
+[Service]
+Type=forking
+User=kyle
+Group=kyle
+Environment="DISPLAY=:99"
+Environment="WINEDEBUG=-all"
+Environment="WINEPREFIX=/home/kyle/.wine-mt5"
+
+# 1. Start virtual display
+ExecStartPre=/usr/bin/Xvfb :99 -screen 0 1024x768x24 -ac &
+
+# 2. Small delay to let Xvfb initialise
+ExecStartPre=/bin/sleep 2
+
+# 3. Launch MT5 terminal headless under Wine
+# Replace the path below with the actual MT5 terminal64.exe location after install
+ExecStart=/usr/bin/wine64 /home/kyle/.wine-mt5/drive_c/Program\ Files/MetaTrader\ 5/terminal64.exe /portable
+
+Restart=always
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# Journal logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bytrader-mt5
+
+[Install]
+WantedBy=multi-user.target

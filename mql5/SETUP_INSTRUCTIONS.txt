@@ -1,0 +1,27 @@
+; JAson.mqh — Bundled JSON library for MQL5
+; Source: https://github.com/nicholishen/KVJSon
+; This is a placeholder. The real JAson.mqh must be downloaded from:
+;
+;   https://www.mql5.com/en/code/13663
+;
+; Or use the community port:
+;   https://github.com/vivazzi/JAson
+;
+; Place the downloaded JAson.mqh into:
+;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Include/JAson.mqh
+;
+; And place the ZeroMQ include folder (from mql5-zmq) into:
+;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Include/Zmq/
+;
+; DLLs (libzmq.dll + Mql5Zmq.dll) go into:
+;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Libraries/
+;
+; Steps:
+;  1. Download mql5-zmq: https://github.com/dingmaotu/mql5-zmq/releases
+;     Copy: Include/Zmq/ and Libraries/libzmq.dll, Mql5Zmq.dll
+;  2. Download JAson.mqh from mql5.com code base (free, no account needed)
+;  3. Place VantageBridgeEA.mq5 in:
+;     %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Experts/
+;  4. In MT5: File > Open Data Folder to find the Terminal <ID>
+;  5. Compile in MetaEditor (F7), attach to XAUUSD M1 chart
+;  6. Enable "Allow DLL imports" in EA settings

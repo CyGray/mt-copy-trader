@@ -1,12 +1,16 @@
 import crypto from 'node:crypto';
 import { NewMessage, Raw } from 'telegram/events';
+import { EditedMessage } from 'telegram/events/EditedMessage';
 import { TelegramClient } from 'telegram';
 import { initFirestore } from './firestoreAdmin';
 import { logger } from './logger';
 import { writeSystemLog } from './systemLog';
 import { parseTelegramSignal } from './telegramParser';
+import { parseGoldSignal } from './vipSignalParser';
+import { forwardGoldSignal } from './signalForwarding';
 import { getTelegramClient, getTelegramStatus } from './telegramClient';
 import { handleParsedSignal } from './tradeEngine';
+import { cancelGoldTrade, handleGoldSignal } from './mt5TradeEngine';
 
 let listenerStarted = false;
 let lastSettingsFetch = 0;
@@ -329,6 +333,31 @@ async function logTelegramMessage(
     });
   }
 
+  if (text) {
+    const goldSignal = parseGoldSignal(text);
+    if (goldSignal.ok) {
+      await forwardGoldSignal(chatId, messageId, goldSignal.signal, hash);
+      // MT5 execution — runs alongside signal forwarding
+      try {
+        await handleGoldSignal({
+          chatId,
+          messageId,
+          messageDate,
+          signal: goldSignal.signal,
+        });
+      } catch (error) {
+        logger.error('mt5_trade_engine_failed', {
+          error: error instanceof Error ? error.message : String(error),
+        });
+        await writeSystemLog('error', 'telegram_listener', 'mt5_trade_engine_failed', {
+          chatId,
+          messageId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
   if (parsed.ok && parsed.signal) {
     await writeSystemLog('info', 'telegram_listener', 'signal_parsed', {
       chatId,
@@ -525,6 +554,27 @@ export async function startTelegramListener(): Promise<void> {
       const messageId = getMessageId(event.message);
       logger.info('telegram_message_received', { chatId, messageId, type });
       await logTelegramMessage(type, event.message, client);
+
+      // On edits: if the message text no longer parses as a gold signal,
+      // request cancellation of any open position from the original signal.
+      if (type === 'edit') {
+        const text = getMessageText(event.message);
+        if (text) {
+          const { parseGoldSignal: pg } = await import('./vipSignalParser.js');
+          const goldSignal = pg(text);
+          if (!goldSignal.ok) {
+            try {
+              await cancelGoldTrade(chatId, messageId);
+            } catch (cancelErr) {
+              logger.warn('mt5_cancel_on_edit_failed', {
+                chatId,
+                messageId,
+                error: cancelErr instanceof Error ? cancelErr.message : String(cancelErr),
+              });
+            }
+          }
+        }
+      }
     } catch (error) {
       logger.error('telegram_listener_error', {
         error: error instanceof Error ? error.message : String(error),
@@ -534,6 +584,7 @@ export async function startTelegramListener(): Promise<void> {
       });
     }
   };
+
 
   const rawHandler = async (event: unknown) => {
     try {
@@ -545,7 +596,8 @@ export async function startTelegramListener(): Promise<void> {
     }
   };
 
-  client.addEventHandler((event) => handler(event, event.message && 'editDate' in event.message ? 'edit' : 'new'), new NewMessage({}));
+  client.addEventHandler((event) => handler(event, 'new'), new NewMessage({}));
+  client.addEventHandler((event) => handler(event, 'edit'), new EditedMessage({}));
   client.addEventHandler(rawHandler, new Raw({}));
 
   listenerStarted = true;

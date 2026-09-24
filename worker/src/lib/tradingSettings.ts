@@ -10,7 +10,23 @@ export type TradingSettings = {
   tp1SkipBuffer: number;
   maxOpenPositions: number;
   maxPositionsPerSymbol: number;
+  /** Legacy Bybit optional flag — kept for backward compat */
   bybitOptional: boolean;
+  /** If true, the worker runs in signal-forward-only mode without MT5 execution */
+  mt5Optional: boolean;
+  // ------------------------------------------------------------------
+  // MT5 Lifecycle Manager settings (XAUUSD, 1 pip = $0.10)
+  // ------------------------------------------------------------------
+  /** Pips price must move in favour before break-even is triggered (default 20) */
+  beTriggerPips: number;
+  /** Pips above/below entry the SL is placed on break-even (default 2) */
+  beBufferPips: number;
+  /** Trailing stop step in pips — SL moves this many pips per tick (default 15) */
+  trailStepPips: number;
+  /** Extra buffer pips added to trailing stop (default 3) */
+  stopBufferPips: number;
+  /** Lifecycle poll interval in ms (default 2000) */
+  lifecycleIntervalMs: number;
 };
 
 const DEFAULT_SETTINGS: TradingSettings = {
@@ -22,6 +38,12 @@ const DEFAULT_SETTINGS: TradingSettings = {
   maxOpenPositions: 3,
   maxPositionsPerSymbol: 1,
   bybitOptional: false,
+  mt5Optional: false,
+  beTriggerPips: 20,
+  beBufferPips: 2,
+  trailStepPips: 15,
+  stopBufferPips: 3,
+  lifecycleIntervalMs: 2000,
 };
 
 function toNumber(value: unknown, fallback: number): number {
@@ -59,6 +81,12 @@ export async function getTradingSettings(): Promise<TradingSettings> {
             max_open_positions?: number;
             max_positions_per_symbol?: number;
             bybit_optional?: boolean;
+            mt5_optional?: boolean;
+            be_trigger_pips?: number;
+            be_buffer_pips?: number;
+            trail_step_pips?: number;
+            stop_buffer_pips?: number;
+            lifecycle_interval_ms?: number;
           };
         }
       | undefined;
@@ -82,9 +110,15 @@ export async function getTradingSettings(): Promise<TradingSettings> {
         trading.max_positions_per_symbol,
         DEFAULT_SETTINGS.maxPositionsPerSymbol,
       ),
-      bybitOptional: toBoolean(
-        trading.bybit_optional,
-        DEFAULT_SETTINGS.bybitOptional,
+      bybitOptional: toBoolean(trading.bybit_optional, DEFAULT_SETTINGS.bybitOptional),
+      mt5Optional: toBoolean(trading.mt5_optional, DEFAULT_SETTINGS.mt5Optional),
+      beTriggerPips: toNumber(trading.be_trigger_pips, DEFAULT_SETTINGS.beTriggerPips),
+      beBufferPips: toNumber(trading.be_buffer_pips, DEFAULT_SETTINGS.beBufferPips),
+      trailStepPips: toNumber(trading.trail_step_pips, DEFAULT_SETTINGS.trailStepPips),
+      stopBufferPips: toNumber(trading.stop_buffer_pips, DEFAULT_SETTINGS.stopBufferPips),
+      lifecycleIntervalMs: toNumber(
+        trading.lifecycle_interval_ms,
+        DEFAULT_SETTINGS.lifecycleIntervalMs,
       ),
     };
   } catch {
