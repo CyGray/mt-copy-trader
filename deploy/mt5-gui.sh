@@ -26,6 +26,26 @@ mkdir -p "$RUN"
 pid_alive() { [ -n "${1:-}" ] && kill -0 "$1" 2>/dev/null; }
 read_pid() { [ -f "$RUN/$1" ] && cat "$RUN/$1" 2>/dev/null; }
 
+# noVNC ships vnc.html but no index.html, so "/" would fall back to a directory
+# listing. The Hub's Open button uses the bare preview URL, so drop in a
+# redirect that sends "/" to vnc.html.
+ensure_novnc_index() {
+  local index="$NOVNC_DIR/index.html"
+  [ -f "$index" ] && return 0
+  cat > "$index" 2>/dev/null <<'HTML' || return 0
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0; url=vnc.html">
+  <title>ByTrader MT5 console</title>
+  <script>location.replace('vnc.html' + location.search + location.hash);</script>
+</head>
+<body><p>Opening the console… if nothing happens, <a href="vnc.html">open vnc.html</a>.</p></body>
+</html>
+HTML
+}
+
 start() {
   if pid_alive "$(read_pid xvfb)"; then
     echo "xvfb: already running ($(read_pid xvfb))"
@@ -57,14 +77,15 @@ start() {
   if pid_alive "$(read_pid websockify)"; then
     echo "noVNC: already running ($(read_pid websockify))"
   else
+    ensure_novnc_index
     "$WEBSOCKIFY_BIN" --web "$NOVNC_DIR" "127.0.0.1:$WEB_PORT" "127.0.0.1:$VNC_PORT" \
       >"$RUN/websockify.log" 2>&1 &
     echo $! > "$RUN/websockify"; sleep 1
-    echo "noVNC: http://127.0.0.1:$WEB_PORT/vnc.html ($(read_pid websockify))"
+    echo "noVNC: http://127.0.0.1:$WEB_PORT/ ($(read_pid websockify))"
   fi
   echo
   echo "Tunnel:  ssh -N -L $WEB_PORT:127.0.0.1:$WEB_PORT kyle@$(hostname -f 2>/dev/null || hostname)"
-  echo "Open:    http://127.0.0.1:$WEB_PORT/vnc.html"
+  echo "Open:    http://127.0.0.1:$WEB_PORT/"
 }
 
 stop() {
