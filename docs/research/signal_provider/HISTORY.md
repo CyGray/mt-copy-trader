@@ -21,6 +21,12 @@ Nothing here was approved or activated. No broker order, close, restart, deploy,
   the Lucas channel (`OWNER_ACTION.md`) is the fast path to 160 signals.
 - The live Go parser does not read the Lucas zone format, and the executor ignores both chats (not source chats).
 - Holm across the three providers: none has a CI above zero, so nothing survives.
+- Second pass (same day): a Lucas-specific grammar and a live-follower simulation show the provider's own
+  management made about 0 R on its 2 signals (best reading +0.46 R mean). One instruction was rewritten after the
+  price moved, and all 9 sell claims quote an unreachable price. Other channels in the account:
+  dannygenwealth VIP `-1004426286726` (1 signal in 725 messages, posted past its stop) and `-1004427167750`
+  (3 signals, 2 posted after price had passed TP1). All Unknown; none tradable on this evidence
+  (`REPORT_LUCAS_DEEP.md`, `REPORT_OTHER_CHANNELS.md`).
 
 ## 1. XAUUSD provider `-1003271337051`: current conclusion (2026-10-26)
 
@@ -56,6 +62,7 @@ after 2026-10-22; Vantage commission, margin and in-hours spread.
 | 2026-10-25 | Not research: the AutoTrader was stopped cleanly at 14:02Z and the forwarder stopped at 14:09Z on Telegram `401 AUTH_KEY_UNREGISTERED` (session invalidated). No new signals are received until the owner re-authorises the Telegram session | forwarder journal |
 | 2026-10-26 | Plain-language synthesis for the owner; this history and the skill written | this file, the skill |
 | 2026-10-27 | Two-channel study (GAB FX, LUCAS GOLD LEGEND): data ladder (Go SQLite store, Firestore count, journals, public previews), pre-registration, new parser for the zone / multi-signal format, symbol-generalised engine (FX), pilot, read-only Vantage specs, independent audit, OWNER_ACTION | `2026-10-27-two-channels/` |
+| 2026-10-27 | Second pass: Lucas grammar, live-follower simulation and claims audit; inventory of every stored chat, prelim and deep check of the two other channels; public-preview scrape (bulk reposts, unusable) | `2026-10-27-two-channels/REPORT_LUCAS_DEEP.md`, `REPORT_OTHER_CHANNELS.md` |
 
 ## 3. Decisions that shaped the result
 

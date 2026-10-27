@@ -30,6 +30,8 @@ for s in sigs:
     touch.append(t)
 for name, rows in (('trades', trades), ('fills', fills)):
     with open(f'{prefix}_{name}.csv', 'w', newline='') as f:
+        if not rows:
+            continue                      # e.g. no signal could be filled: nothing to write
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys())); w.writeheader(); w.writerows(rows)
 rng = np.random.default_rng(12345)
 def boot(x, B=10000):

@@ -1,0 +1,215 @@
+{
+ "provider_managed": [
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 10.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.045,
+   "R_vs_first_stop": -0.045
+  },
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 10.0,
+   "signal": 4,
+   "R_vs_final_stop": -0.049,
+   "R_vs_first_stop": -0.018
+  },
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 30.0,
+   "signal": 3,
+   "R_vs_final_stop": 0.016,
+   "R_vs_first_stop": 0.016
+  },
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 30.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.151,
+   "R_vs_first_stop": 0.057
+  },
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 60.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.06,
+   "R_vs_first_stop": -0.06
+  },
+  {
+   "stops": "global",
+   "pending": "cancel_unnamed",
+   "latency_s": 60.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.248,
+   "R_vs_first_stop": 0.093
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 10.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.066,
+   "R_vs_first_stop": -0.066
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 10.0,
+   "signal": 4,
+   "R_vs_final_stop": -0.049,
+   "R_vs_first_stop": -0.018
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 30.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.005,
+   "R_vs_first_stop": -0.005
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 30.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.151,
+   "R_vs_first_stop": 0.057
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 60.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.081,
+   "R_vs_first_stop": -0.081
+  },
+  {
+   "stops": "global",
+   "pending": "keep",
+   "latency_s": 60.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.248,
+   "R_vs_first_stop": 0.093
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 10.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.045,
+   "R_vs_first_stop": -0.045
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 10.0,
+   "signal": 4,
+   "R_vs_final_stop": -0.049,
+   "R_vs_first_stop": -0.018
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 30.0,
+   "signal": 3,
+   "R_vs_final_stop": 0.016,
+   "R_vs_first_stop": 0.016
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 30.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.151,
+   "R_vs_first_stop": 0.057
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 60.0,
+   "signal": 3,
+   "R_vs_final_stop": -0.06,
+   "R_vs_first_stop": -0.06
+  },
+  {
+   "stops": "per_layer",
+   "pending": "cancel_unnamed",
+   "latency_s": 60.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.248,
+   "R_vs_first_stop": 0.093
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 10.0,
+   "signal": 3,
+   "R_vs_final_stop": 0.59,
+   "R_vs_first_stop": 0.59
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 10.0,
+   "signal": 4,
+   "R_vs_final_stop": -0.049,
+   "R_vs_first_stop": -0.018
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 30.0,
+   "signal": 3,
+   "R_vs_final_stop": 0.712,
+   "R_vs_first_stop": 0.712
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 30.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.151,
+   "R_vs_first_stop": 0.057
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 60.0,
+   "signal": 3,
+   "R_vs_final_stop": 0.679,
+   "R_vs_first_stop": 0.679
+  },
+  {
+   "stops": "per_layer",
+   "pending": "keep",
+   "latency_s": 60.0,
+   "signal": 4,
+   "R_vs_final_stop": 0.248,
+   "R_vs_first_stop": 0.093
+  }
+ ],
+ "claims": {
+  "summary": {
+   "n": 40,
+   "arith_ok": 36,
+   "arith_checked": 38,
+   "price_reached": 28,
+   "price_checked": 39,
+   "entry_fillable": 39
+  },
+  "sell_claims": {
+   "n": 9,
+   "reached": 0
+  },
+  "buy_claims": {
+   "n": 30,
+   "reached": 28
+  },
+  "max_overstatement_usd_sell": 1.095
+ }
+}

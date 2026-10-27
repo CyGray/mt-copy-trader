@@ -96,3 +96,13 @@ Each item cost real time or nearly produced a wrong conclusion. Check them befor
   (`PING`: `server_time - gmt_time = 10800`). Subtract the offset before comparing with Dukascopy or Telegram times.
 - **Next pre-registration: make `sl_annotation_mismatch` a hard flag** (audit F2, 2026-10-27). It was info-only
   in the first two-channel study because the hard-flag list had been pre-registered unchanged.
+- **Simulate the provider's live instructions, not only the posted levels** (`analysis/lucas/lucas_followup.py` of the
+  2026-10-27 study). Apply every revision at its own time plus latency; report every reading of ambiguous text.
+  Lucas rewrote a "move stop" instruction after the dip that had stopped it out; the final text is hindsight.
+- **Audit claims on the closing side, from the fill.** Lucas's sell claims quoted prices only the bid reached
+  (0 of 9 reachable on the ask). A "price reached" check must start at the first possible fill, not at signal time.
+- **Check price at posting.** -1004427167750 posted BUYs with price already past TP1; dannygen posted a SELL with
+  price already beyond its stop. A "TP1 HIT" minutes later then proves nothing.
+- **Public previews can be bulk-repost farms**: count distinct timestamps. 698 posts in 116 timestamps means post
+  time is not signal time.
+- **Channel or group?** Use the stored raw message (`Post` true, no `FromID`) before analysing a chat.

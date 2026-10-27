@@ -1,0 +1,399 @@
+{
+ "ch4427": {
+  "n_signals": 3,
+  "fills_mid": {
+   "E1|MID": 1,
+   "E2|MID": 3,
+   "E3|MID": 0
+  },
+  "results": [
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "S_TP1|M0",
+    "n": 1,
+    "mean_R": 0.288,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "S_TP2|M0",
+    "n": 1,
+    "mean_R": -1.006,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "S_TP3|M0",
+    "n": 1,
+    "mean_R": -1.006,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "S_TP4|M0",
+    "n": 1,
+    "mean_R": -1.006,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "S_TP4|M5",
+    "n": 1,
+    "mean_R": -0.019,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "Q_25x4|M0",
+    "n": 1,
+    "mean_R": -0.682,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "BASE",
+    "variant": "Q_25x4|M3",
+    "n": 1,
+    "mean_R": -0.682,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "S_TP1|M0",
+    "n": 1,
+    "mean_R": 0.205,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "S_TP2|M0",
+    "n": 1,
+    "mean_R": -1.016,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "S_TP3|M0",
+    "n": 1,
+    "mean_R": -1.016,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "S_TP4|M0",
+    "n": 1,
+    "mean_R": -1.016,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "S_TP4|M5",
+    "n": 1,
+    "mean_R": -0.01,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "Q_25x4|M0",
+    "n": 1,
+    "mean_R": -0.71,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "MID",
+    "variant": "Q_25x4|M3",
+    "n": 1,
+    "mean_R": -0.71,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "S_TP1|M0",
+    "n": 1,
+    "mean_R": 0.197,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "S_TP2|M0",
+    "n": 1,
+    "mean_R": -1.012,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "S_TP3|M0",
+    "n": 1,
+    "mean_R": -1.012,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "S_TP4|M0",
+    "n": 1,
+    "mean_R": -1.012,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "S_TP4|M5",
+    "n": 1,
+    "mean_R": -0.01,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "Q_25x4|M0",
+    "n": 1,
+    "mean_R": -0.71,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E1",
+    "cost": "PESS",
+    "variant": "Q_25x4|M3",
+    "n": 1,
+    "mean_R": -0.71,
+    "ci_lo": null,
+    "ci_hi": null
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "S_TP1|M0",
+    "n": 3,
+    "mean_R": -0.001,
+    "ci_lo": -1.003,
+    "ci_hi": 0.5
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "S_TP2|M0",
+    "n": 3,
+    "mean_R": -0.337,
+    "ci_lo": -1.007,
+    "ci_hi": 1.0
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "S_TP3|M0",
+    "n": 3,
+    "mean_R": -0.17,
+    "ci_lo": -1.007,
+    "ci_hi": 1.5
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "S_TP4|M0",
+    "n": 3,
+    "mean_R": -0.003,
+    "ci_lo": -1.007,
+    "ci_hi": 2.0
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "S_TP4|M5",
+    "n": 3,
+    "mean_R": 0.329,
+    "ci_lo": -1.003,
+    "ci_hi": 2.0
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "Q_25x4|M0",
+    "n": 3,
+    "mean_R": -0.128,
+    "ci_lo": -1.003,
+    "ci_hi": 1.25
+   },
+   {
+    "entry": "E2",
+    "cost": "BASE",
+    "variant": "Q_25x4|M3",
+    "n": 3,
+    "mean_R": -0.128,
+    "ci_lo": -1.003,
+    "ci_hi": 1.25
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "S_TP1|M0",
+    "n": 3,
+    "mean_R": -0.009,
+    "ci_lo": -1.009,
+    "ci_hi": 0.491
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "S_TP2|M0",
+    "n": 3,
+    "mean_R": -0.347,
+    "ci_lo": -1.019,
+    "ci_hi": 0.988
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "S_TP3|M0",
+    "n": 3,
+    "mean_R": -0.181,
+    "ci_lo": -1.019,
+    "ci_hi": 1.484
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "S_TP4|M0",
+    "n": 3,
+    "mean_R": -0.016,
+    "ci_lo": -1.019,
+    "ci_hi": 1.981
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "S_TP4|M5",
+    "n": 3,
+    "mean_R": 0.319,
+    "ci_lo": -1.009,
+    "ci_hi": 1.981
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "Q_25x4|M0",
+    "n": 3,
+    "mean_R": -0.138,
+    "ci_lo": -1.009,
+    "ci_hi": 1.236
+   },
+   {
+    "entry": "E2",
+    "cost": "MID",
+    "variant": "Q_25x4|M3",
+    "n": 3,
+    "mean_R": -0.138,
+    "ci_lo": -1.009,
+    "ci_hi": 1.236
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "S_TP1|M0",
+    "n": 3,
+    "mean_R": -0.02,
+    "ci_lo": -1.022,
+    "ci_hi": 0.481
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "S_TP2|M0",
+    "n": 3,
+    "mean_R": -0.354,
+    "ci_lo": -1.022,
+    "ci_hi": 0.975
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "S_TP3|M0",
+    "n": 3,
+    "mean_R": -0.189,
+    "ci_lo": -1.022,
+    "ci_hi": 1.469
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "S_TP4|M0",
+    "n": 3,
+    "mean_R": -0.025,
+    "ci_lo": -1.022,
+    "ci_hi": 1.963
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "S_TP4|M5",
+    "n": 3,
+    "mean_R": 0.303,
+    "ci_lo": -1.022,
+    "ci_hi": 1.963
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "Q_25x4|M0",
+    "n": 3,
+    "mean_R": -0.147,
+    "ci_lo": -1.022,
+    "ci_hi": 1.222
+   },
+   {
+    "entry": "E2",
+    "cost": "PESS",
+    "variant": "Q_25x4|M3",
+    "n": 3,
+    "mean_R": -0.147,
+    "ci_lo": -1.022,
+    "ci_hi": 1.222
+   }
+  ]
+ },
+ "dannygen": {
+  "n_signals": 1,
+  "fills_mid": {
+   "E1|MID": 0,
+   "E2|MID": 0,
+   "E3|MID": 0
+  },
+  "results": []
+ }
+}

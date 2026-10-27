@@ -26,6 +26,23 @@ signals at all.**
 - **What to do:** let the forwarder keep recording (it already does, automatically). For a faster answer, export
   the channel's history from Telegram Desktop (`OWNER_ACTION.md`, about 10 minutes of your time).
 
+## Second pass (same day): Lucas checked properly, and every other channel
+
+- **Lucas, closer look.** We read every message and every later edit, including the "move your stop / close the bad
+  entries" updates. Copying the provider's own instructions as they appeared would have made about **nothing** on
+  its two signals: roughly 0 R each, and at best +0.7 R on one. That is far from the advertised "+360 pips". One
+  key instruction was **rewritten after the price had moved**, so the version you read later looks better than
+  what a follower could have done. Its "+N pips" claims are floating highs, and **all 9 of its sell claims quote a
+  better price than a trader could actually have closed at**. There is no more history to test: the public
+  channel with the same name only reposts content in batches, so its timestamps are meaningless.
+- **Other channels in your account** (channels only; groups and personal chats were skipped):
+  - **dannygenwealth VIP** (-1004426286726): 725 messages, only **1 signal**, and when it was posted the price was
+    already past its stop. A sales channel.
+  - **-1004427167750**: a real signal channel, but we only ever received **3 signals** (12-14 Oct). In 2 of the 3
+    the price had already passed the first target when the signal was posted, so its "TP1 HIT" posts describe a
+    move nobody could have caught. 3 trades are not enough to judge.
+- **Same answer as before: trade none of them.**
+
 ## Comparison
 
 | Provider | Signals tested | Mean result per trade (R) | 95% range | Label | Verdict |
@@ -34,6 +51,9 @@ signals at all.**
 | Same, second out-of-sample test (2026-09-24 .. 10-22) | 53 | **-0.66** | -0.79 to -0.52 | Modeled | losing |
 | GAB FX | **0** | n/a | n/a | Verified (no signals) | Unknown, no data |
 | LUCAS GOLD LEGEND, pilot (all at TP1 / provider plan) | **2** | -0.14 / +0.36 | -1.01 to +2.73 (meaningless at n = 2) | Modeled | Unknown, insufficient data |
+| LUCAS, following the provider's live instructions (range over readings and latencies) | 2 | -0.06 to +0.46 | n/a (n = 2) | Modeled | Unknown; live results about break-even |
+| Channel -1004427167750, pilot (all at TP1, E2) | 3 | -0.01 | not meaningful (n = 3) | Modeled | Unknown, insufficient data |
+| dannygenwealth VIP (-1004426286726) | 1 (unfillable) | n/a | n/a | Verified | not a signal channel |
 
 R = profit or loss divided by the amount risked to the stop. Simulated on independent tick prices (Dukascopy),
 with realistic spread and slippage costs ("MID"), not on the broker. Comparing three providers and keeping the

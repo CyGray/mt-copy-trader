@@ -72,3 +72,19 @@ here. Spreads in the London and New York sessions remain unmeasured.
 - The paid groups behind both channels were not observed; their signals may differ from the free channel's.
 - Provider management messages (moving stops, closing "bad entries") were not simulated.
 - The FX path is validated on synthetic data and the ECB check only; no real FX signal exists yet.
+
+## 5. Second pass (Lucas deep check, other channels)
+
+| Check | Command (from `analysis/`) | Result | Label |
+|---|---|---|---|
+| Lucas grammar on every revision | `lucas/lucas_grammar.py` (via `lucas_followup.py`) | 87 revisions typed; both signals' levels exact in both revisions after the TP-capture fix | Verified |
+| Grammar and extra-channel parser tests | `lucas/test_lucas_grammar.py` | 6/6 OK (synthetic texts, incl. the typo rule) | Verified |
+| Live-follower simulation | `lucas/lucas_followup.py <revisions> RAW out --stops {global,per_layer} --pending {keep,cancel_unnamed} --latency {10,30,60}` | all 12 variants reported; SIGNAL 4 hand-recomputed: -29.17 USD per lot plan, identical | Modeled |
+| Claims audit | same script | 40 claims; arithmetic 36/38; BUY reached 28/30; SELL reached 0/9 (max overstatement 1.10 USD) | Verified |
+| Tick loader cross-check | `window_ticks` vs `decode_hour` over 13:52-07:00 | 135,971 = 135,971 | Verified |
+| Extra-channel signals | `other/parse_other.py`, `pilot/pilot_eval.py` | 3 + 1 signals; price at posting measured; dannygen unfillable (beyond stop) | Verified / Modeled |
+| Channel vs group | stored raw message `Post` / `FromID` | 4 channels, 3 non-channels excluded | Verified |
+| Public preview | `a1/scrape_tme_preview.py LUCAS_GOLD_LEGEND <dir>` | 698 posts, 116 distinct timestamps; all 74 SL+TP posts in batches | Verified |
+
+Not done in the second pass: an independent re-implementation audit of the follower simulator (two signals; hand
+check instead), and any statistic beyond description (n = 2 and n = 3).

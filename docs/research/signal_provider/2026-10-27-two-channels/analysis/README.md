@@ -54,3 +54,12 @@ on train + validation, freeze `finalists.json` with its sha256, one OOS run. For
 - `pilot/pilot_eval.py`: pre-registered pilot (fixed strategy set, no selection) plus a touch check.
 - `b3/sizing_table.py`: lot-size feasibility with the `positionSizing.ts` port and the bridge specs.
 - `aggregates/`: JSON aggregates (no text, no per-trade rows).
+- `lucas/lucas_grammar.py`: LUCAS-specific grammar (signals, management, entry hits, completions, recap claims; every
+  revision). `lucas/lucas_followup.py`: claims audit and live-follower simulation (`--stops`, `--pending`,
+  `--latency`). `lucas/test_lucas_grammar.py`: tests (also cover `other/parse_other.py`; run from a work directory that
+  has `lucas/` and `other/` side by side, plus `a3/` for the follower script).
+- `other/parse_other.py`: parser for channel -1004427167750 (superscript TPs, zone typo rule) and the dannygen format.
+- `a1/scrape_tme_preview.py`: polite public web-preview scraper (no login, 1.5 s per page).
+- `a2/fs_fetch_chat.mjs`, `a2/fs_doc_keys.mjs`: budgeted read-only Firestore fetch by chat prefix; field names and
+  channel/group flag of one doc.
+- Second-pass aggregates: `aggregates/lucas_followup_summary.json`, `aggregates/other_channels_pilot_summary.json`.
