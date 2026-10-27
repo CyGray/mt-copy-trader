@@ -14,6 +14,9 @@ import {
   X,
   MessageSquare,
   MoreHorizontal,
+  Layers,
+  Bell,
+  Inbox,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,6 +32,9 @@ const NAV_ITEMS = [
   { label: 'Telegram', href: '/telegram', icon: MessageSquare },
   { label: 'Analytics', href: '/analytics', icon: LineChart },
   { label: 'Admin', href: '/admin', icon: Shield },
+  { label: 'Execution profiles', href: '/profiles', icon: Layers },
+  { label: 'Alerts', href: '/alerts', icon: Bell },
+  { label: 'Signal queue', href: '/signals', icon: Inbox },
 ];
 
 const MOBILE_NAV_ITEMS = NAV_ITEMS.slice(0, 4);

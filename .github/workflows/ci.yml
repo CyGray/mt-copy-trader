@@ -2,12 +2,16 @@ name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master", "main"]
   pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,13 +23,62 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
 
-      - name: Lint
+      - name: Lint (web + worker)
         run: npm run lint
 
-      - name: Build
-        run: npm run build
-
-      - name: Worker Tests
+      - name: Worker unit tests
         run: npm run test
+
+      - name: Web route and view tests
+        run: npm run test --workspace web
+
+      - name: Worker type-check
+        run: npx tsc -p worker/tsconfig.json --noEmit
+
+      - name: Worker build (temp output, not deployed)
+        run: npx tsc -p worker/tsconfig.json --outDir "$RUNNER_TEMP/worker-dist"
+
+      - name: Web build
+        # Placeholder values only: they are inlined at build time and must never
+        # be real credentials in CI. Real values come from the deploy environment.
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ci-placeholder
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ci-placeholder.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ci-placeholder
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ci-placeholder.appspot.com
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "0"
+          NEXT_PUBLIC_FIREBASE_APP_ID: "1:0:web:ci"
+        run: npm run build --workspace web
+
+  firestore-rules:
+    # Security rules against the local Firestore emulator (project demo-bytrader).
+    # No credentials and no real Firebase project are involved.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Java (emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install rules test dependencies
+        run: npm ci --no-audit --no-fund --prefix tests/firestore-rules
+
+      - name: Rules tests in the emulator
+        run: bash tests/firestore-rules/run.sh

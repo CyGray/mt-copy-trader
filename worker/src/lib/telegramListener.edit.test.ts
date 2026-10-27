@@ -30,9 +30,6 @@ function buildHarness() {
   vi.doMock('./systemLog', () => ({
     writeSystemLog: vi.fn(async () => undefined),
   }));
-  vi.doMock('./tradeEngine', () => ({
-    handleParsedSignal: vi.fn(async () => undefined),
-  }));
 
   return { registrations, client };
 }

@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev:autotrader": "ts-node-dev --respawn --transpile-only src/autotrader.ts",
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "start": "node dist/index.js",
     "start:forwarder": "node dist/index.js",
     "start:autotrader": "node dist/autotrader.js",
@@ -12,7 +14,6 @@
     "seed:firestore": "node scripts/initFirestore.js"
   },
   "dependencies": {
-    "bybit-api": "^4.5.1",
     "dotenv": "16.4.5",
     "express": "4.22.1",
     "firebase-admin": "12.1.1",

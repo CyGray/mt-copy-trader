@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getWorkerUrl } from '@/lib/workerApi';
+import type { NextRequest } from 'next/server';
+import { isResponse, requireAdmin } from '@/lib/serverAuth';
+import { getWorkerUrl, workerHeaders } from '@/lib/workerApi';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (isResponse(auth)) return auth;
+
   const target = `${getWorkerUrl()}/telegram/status`;
 
   try {
-    const response = await fetch(target, { cache: 'no-store' });
+    const response = await fetch(target, { cache: 'no-store', headers: workerHeaders() });
     const data = await response.json();
     return NextResponse.json(data, { status: response.status });
   } catch {

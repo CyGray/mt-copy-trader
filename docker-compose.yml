@@ -1,30 +1,98 @@
 version: '3.9'
 
+# Two-service worker architecture (see deploy/SERVICES.md):
+#   forwarder  - owns the single Telegram session (worker/dist/index.js, :4000)
+#   autotrader - MT5 execution + lifecycle (worker/dist/autotrader.js, :4001)
+# Both use the same image (worker/Dockerfile). They communicate only through
+# Firestore. Their HTTP ports are `expose`d on the internal compose network and
+# are NOT published to the host. Only `web` is published.
+#
+# The MT5 terminal and VantageBridgeEA (ZeroMQ REP) are not in this compose
+# file. The bridge must be reachable only on a private network. Never expose
+# the MT5 ZeroMQ port to the public internet.
+
+x-worker-build: &worker-build
+  context: ./worker
+
 services:
   web:
     build:
-      context: ./web
+      # Repository root, because web imports ../worker/src/lib and ../docs (see web/Dockerfile).
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        # Inlined into the client bundle at build time; values come from .env
+        # (compose interpolation). They are not secrets.
+        NEXT_PUBLIC_FIREBASE_API_KEY: ${NEXT_PUBLIC_FIREBASE_API_KEY:-}
+        NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:-}
+        NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID:-}
+        NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:-}
+        NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID:-}
+        NEXT_PUBLIC_FIREBASE_APP_ID: ${NEXT_PUBLIC_FIREBASE_APP_ID:-}
     ports:
       - "3001:3000"
     environment:
       - NODE_ENV=production
+      # Override the .env values (which point at localhost) so the dashboard
+      # reaches the forwarder over the compose network.
+      - WORKER_URL=http://forwarder:4000
+      - WORKER_HEALTH_URL=http://forwarder:4000/health
     env_file:
       - .env
     depends_on:
-      - worker
+      - forwarder
+    restart: unless-stopped
 
-  worker:
-    build:
-      context: ./worker
-    restart: "no"
-    ports:
-      - "4000:4000"
+  forwarder:
+    build: *worker-build
+    # Same image; the image default CMD runs run-with-backoff.sh -> dist/index.js.
     environment:
       - NODE_ENV=production
+      # Container-internal bind address. The host does not publish this port.
+      # NOTE: if WORKER_API_TOKEN is set, web/src/lib/workerApi.ts must send
+      # `Authorization: Bearer <token>` on its /telegram/* proxy calls first,
+      # or the dashboard's Telegram page will receive 401s.
+      - WORKER_HOST=0.0.0.0
+      - WORKER_PORT=4000
+      # Pin the encrypted Telegram session to the named volume below.
+      - TELEGRAM_SESSION_PATH=/data/telegram/session.enc
     env_file:
       - .env
+    expose:
+      - "4000"
     volumes:
       - telegram_session:/data/telegram
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  autotrader:
+    build: *worker-build
+    command: ["node", "dist/autotrader.js"]
+    environment:
+      - NODE_ENV=production
+      - AUTOTRADER_HOST=0.0.0.0
+      - AUTOTRADER_PORT=4001
+      # EA bridge endpoint as seen FROM THE CONTAINER. 127.0.0.1 would be the
+      # container itself, so set MT5_ZMQ_ENDPOINT in .env to the MT5 host's
+      # private-network address when running here. The bridge must be reachable
+      # only on a private network.
+      - MT5_ZMQ_ENDPOINT=${MT5_ZMQ_ENDPOINT:-tcp://host.docker.internal:5555}
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    expose:
+      - "4001"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4001/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
 
 volumes:
   telegram_session:

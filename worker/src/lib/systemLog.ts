@@ -8,10 +8,10 @@ export async function writeSystemLog(
   message: string,
   details: Record<string, unknown> = {},
 ): Promise<boolean> {
-  const firestore = initFirestore();
-  if (!firestore) return false;
-
   try {
+    const firestore = initFirestore();
+    if (!firestore) return false;
+
     await firestore.collection('system_logs').add({
       timestamp: new Date().toISOString(),
       level,

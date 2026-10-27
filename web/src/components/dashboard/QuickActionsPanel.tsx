@@ -1,29 +1,24 @@
 'use client';
 
-import { memo, type ReactNode } from 'react';
+import { memo } from 'react';
 import { QuickAction } from '@/components/ui/QuickAction';
 import {
   AlertOctagon,
-  FileText,
   RefreshCw,
-  Power,
-  Settings,
   Activity,
 } from 'lucide-react';
 
 interface QuickActionsPanelProps {
   killSwitchActive?: boolean;
-  paperModeActive?: boolean;
+  killSwitchDisabled?: boolean;
   onKillSwitch?: () => void;
-  onPaperMode?: () => void;
   onRefresh?: () => void;
 }
 
 function QuickActionsPanelComponent({
   killSwitchActive = false,
-  paperModeActive = false,
+  killSwitchDisabled = false,
   onKillSwitch = () => console.log('Kill switch clicked'),
-  onPaperMode = () => console.log('Paper mode clicked'),
   onRefresh = () => console.log('Refresh clicked'),
 }: QuickActionsPanelProps) {
   return (
@@ -38,13 +33,7 @@ function QuickActionsPanelComponent({
           onClick={onKillSwitch}
           variant="danger"
           active={killSwitchActive}
-        />
-        <QuickAction
-          label="Paper Mode"
-          icon={<FileText className="h-5 w-5" />}
-          onClick={onPaperMode}
-          variant="secondary"
-          active={paperModeActive}
+          disabled={killSwitchDisabled}
         />
         <QuickAction
           label="Refresh"

@@ -145,3 +145,43 @@ export function parseGoldSignal(text: string): GoldSignalParseResult {
     },
   };
 }
+
+const CANCEL_MAX_LENGTH = 120;
+
+// Whole-word cancel words ("cancel", "cancelled", "canceled") also cover
+// "cancel signal" and "signal cancelled". "close now" is deliberately absent:
+// it is a close instruction, not a cancellation.
+const CANCEL_PHRASES: RegExp[] = [
+  /\bcancel(?:l?ed)?\b/gi,
+  /\bdelete\s+this\s+signal\b/gi,
+  /\bignore\s+this\s+signal\b/gi,
+  /\binvalid\s+signal\b/gi,
+];
+
+// A cancel phrase directly preceded by a negation ("don't cancel", "do not
+// cancel") is not a cancellation.
+const NEGATION_BEFORE_PHRASE = /\b(?:not|never|no|don['’]?t|do\s+not|won['’]?t)\s+$/i;
+
+/**
+ * Conservative cancel detection for Telegram messages.
+ *
+ * Rule: cancel intent is true only when the trimmed text is at most 120
+ * characters, contains a cancel phrase that is not negated, and does not parse
+ * as a gold signal (a valid signal is never a cancel). Longer messages are
+ * treated as commentary, so a long update that mentions "cancel" is ignored.
+ * "Don't cancel your plans, TP1 hit" is not a cancel because the phrase is
+ * negated.
+ */
+export function detectCancelIntent(text: string): boolean {
+  const trimmed = (text ?? '').trim();
+  if (!trimmed || trimmed.length > CANCEL_MAX_LENGTH) return false;
+  if (parseGoldSignal(trimmed).ok) return false;
+
+  for (const pattern of CANCEL_PHRASES) {
+    for (const match of trimmed.matchAll(pattern)) {
+      const before = trimmed.slice(0, match.index ?? 0);
+      if (!NEGATION_BEFORE_PHRASE.test(before)) return true;
+    }
+  }
+  return false;
+}

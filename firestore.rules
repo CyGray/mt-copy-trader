@@ -1,0 +1,123 @@
+rules_version = '2';
+
+// ByTrader Firestore security rules. Deny by default.
+//
+// Model: the operator dashboard reads Firestore directly with the client SDK
+// for live views. Every mutation goes through server API routes
+// (web/src/app/api/*) that verify the caller and write with the Firebase Admin
+// SDK, and the worker services also use the Admin SDK. The Admin SDK bypasses
+// these rules, so ALL client writes are denied here.
+//
+// Deploy (owner only; not run by this repository's tooling):
+//   firebase deploy --only firestore:rules
+//
+// The web client performs no direct writes (settings, kill switch, execution
+// mode, safety, close-all, profiles and first-sign-in user creation all go
+// through API routes).
+//
+// Reads require a verified email and a users/{uid} document whose role is
+// 'admin' or 'viewer'. That document is created only by POST /api/users/ensure,
+// which enforces ALLOWED_EMAILS (fail closed when unset), so a Google account
+// outside the allow-list can sign in to Firebase Auth but cannot read data.
+// To revoke access, remove the email from ALLOWED_EMAILS and set the user's
+// role to 'revoked' (or delete users/{uid}); the rules then refuse reads at once.
+//
+// Tested against the Firestore emulator: tests/firestore-rules (see its README).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedInVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function allowedUser() {
+      return signedInVerified()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'viewer'];
+    }
+
+    // Dashboard collections: read-only for verified signed-in users.
+    match /settings/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /trade_sets/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /trade_events/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /signal_events/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /system_logs/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /telegram_messages/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /signal_forwards/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /execution_profiles/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /execution_profile_audit/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /admin_commands/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /admin_audit/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /paper_broker/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    // Operator alerts and service heartbeats (written by the worker services).
+    match /alerts/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    match /service_status/{docId} {
+      allow read: if allowedUser();
+      allow write: if false;
+    }
+
+    // autotrader_state (signal feed cursor) has no rule: worker-internal, denied.
+
+    // A user may read only their own profile (role lookup). Role changes are
+    // made server-side only.
+    match /users/{uid} {
+      allow read: if signedInVerified() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Anything not matched above is denied (no catch-all allow).
+  }
+}

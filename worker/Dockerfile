@@ -17,5 +17,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/scripts ./scripts
 RUN chmod +x /app/scripts/run-with-backoff.sh
-EXPOSE 4000
+# 4000 = forwarder (dist/index.js), 4001 = AutoTrader (dist/autotrader.js).
+# Neither is published to the host by docker-compose.yml; containers only.
+EXPOSE 4000 4001
 CMD ["/app/scripts/run-with-backoff.sh"]

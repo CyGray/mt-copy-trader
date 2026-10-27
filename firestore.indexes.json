@@ -1,0 +1,29 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "trade_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "trade_set_id", "order": "ASCENDING" },
+        { "fieldPath": "timestamp", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "trade_sets",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schema", "order": "ASCENDING" },
+        { "fieldPath": "state", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "signal_events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "autotrader.status", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

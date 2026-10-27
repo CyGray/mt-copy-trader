@@ -1,29 +1,16 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { FormField } from '@/components/ui/FormField';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Save, RefreshCw, Plus, Trash2, Shield, DollarSign, MessageCircle, Link } from 'lucide-react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { Save, RefreshCw, Plus, Trash2, Shield, DollarSign, MessageCircle, Link as LinkIcon } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
-
-// Type for settings
-interface TradingSettings {
-  riskMode: string;
-  riskValue: number;
-  maxOpenPositions: number;
-  maxPositionsPerSymbol: number;
-  maxSignalDelay: number;
-  slippageTol: number;
-  tp1SkipBuffer: number;
-  paperMode: boolean;
-  killSwitch: boolean;
-  bybitOptional: boolean;
-}
-
+import { apiIssues, authedFetch, errorMessage, type ApiIssue } from '@/lib/adminApi';
 
 interface TelegramSettings {
   chatIds: string[];
@@ -31,24 +18,14 @@ interface TelegramSettings {
   chatIdLabels: Record<string, string>;
 }
 
+// Sizing, limits and execution come from the active execution profile and the safety
+// limits (Profiles and Admin pages). The legacy trading.* knobs this page used to edit
+// (risk mode, slippage, "Bybit/MT5 optional") are not read by the v2 AutoTrader.
 interface Settings {
-  trading: TradingSettings;
   telegram: TelegramSettings;
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  trading: {
-    riskMode: 'FIXED_USDT',
-    riskValue: 20,
-    maxOpenPositions: 3,
-    maxPositionsPerSymbol: 1,
-    maxSignalDelay: 120,
-    slippageTol: 0.001,
-    tp1SkipBuffer: 0.0015,
-    paperMode: false,
-    killSwitch: false,
-    bybitOptional: false,
-  },
   telegram: {
     chatIds: [],
     blockedChatIds: [],
@@ -58,12 +35,25 @@ const DEFAULT_SETTINGS: Settings = {
 
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [killSwitch, setKillSwitch] = useState(false);
+  const [killBusy, setKillBusy] = useState(false);
+  const [executionMode, setExecutionMode] = useState<string>('disabled');
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveIssues, setSaveIssues] = useState<ApiIssue[]>([]);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [newChatId, setNewChatId] = useState('');
   const [newBlockedChatId, setNewBlockedChatId] = useState('');
   const [newChatLabel, setNewChatLabel] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  // Live snapshots must not overwrite unsaved edits.
+  const dirtyRef = useRef(false);
+
+  const markDirty = useCallback(() => {
+    dirtyRef.current = true;
+    setHasChanges(true);
+  }, []);
 
   useEffect(() => {
     if (!firestoreDb) {
@@ -76,24 +66,19 @@ export default function SettingsPage() {
       const data = (snap.data() ?? {}) as {
         trading?: Record<string, unknown>;
         telegram?: Record<string, unknown>;
+        execution?: Record<string, unknown>;
       };
 
       const trading = data.trading ?? {};
       const telegram = data.telegram ?? {};
 
+      setKillSwitch(trading.kill_switch === true);
+      setExecutionMode(typeof data.execution?.mode === 'string' ? data.execution.mode : 'disabled');
+      setIsLoading(false);
+
+      if (dirtyRef.current) return;
+
       const nextSettings: Settings = {
-        trading: {
-          riskMode: (trading.risk_mode as string) ?? (trading.riskMode as string) ?? DEFAULT_SETTINGS.trading.riskMode,
-          riskValue: Number(trading.risk_value ?? trading.riskValue ?? DEFAULT_SETTINGS.trading.riskValue),
-          maxOpenPositions: Number(trading.max_open_positions ?? trading.maxOpenPositions ?? DEFAULT_SETTINGS.trading.maxOpenPositions),
-          maxPositionsPerSymbol: Number(trading.max_positions_per_symbol ?? trading.maxPositionsPerSymbol ?? DEFAULT_SETTINGS.trading.maxPositionsPerSymbol),
-          maxSignalDelay: Number(trading.max_signal_delay_sec ?? trading.maxSignalDelay ?? DEFAULT_SETTINGS.trading.maxSignalDelay),
-          slippageTol: Number(trading.slippage_tol ?? trading.slippageTol ?? DEFAULT_SETTINGS.trading.slippageTol),
-          tp1SkipBuffer: Number(trading.tp1_skip_buffer ?? trading.tp1SkipBuffer ?? DEFAULT_SETTINGS.trading.tp1SkipBuffer),
-          paperMode: Boolean(trading.paper_mode ?? trading.paperMode ?? DEFAULT_SETTINGS.trading.paperMode),
-          killSwitch: Boolean(trading.kill_switch ?? trading.killSwitch ?? DEFAULT_SETTINGS.trading.killSwitch),
-          bybitOptional: Boolean(trading.bybit_optional ?? trading.bybitOptional ?? DEFAULT_SETTINGS.trading.bybitOptional),
-        },
         telegram: {
           chatIds: (telegram.allowed_chat_ids as string[]) ?? (telegram.chatIds as string[]) ?? DEFAULT_SETTINGS.telegram.chatIds,
           blockedChatIds:
@@ -106,22 +91,29 @@ export default function SettingsPage() {
 
       setSettings(nextSettings);
       setHasChanges(false);
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Update trading settings
-  const updateTrading = useCallback(<K extends keyof TradingSettings>(
-    field: K,
-    value: TradingSettings[K]
-  ) => {
-    setSettings((prev) => ({
-      ...prev,
-      trading: { ...prev.trading, [field]: value },
-    }));
-    setHasChanges(true);
+  // Kill switch goes through the API (it takes effect immediately, outside the save bar).
+  const toggleKillSwitch = useCallback(async (engaged: boolean) => {
+    if (!engaged && !window.confirm('Release the kill switch? New entries can resume if the execution mode and active profile allow them.')) {
+      return;
+    }
+    setKillBusy(true);
+    setActionError(null);
+    try {
+      await authedFetch('/api/execution/kill-switch', {
+        method: 'POST',
+        body: JSON.stringify({ engaged }),
+      });
+      setKillSwitch(engaged);
+    } catch (err) {
+      setActionError(errorMessage(err, 'Kill switch change failed.'));
+    } finally {
+      setKillBusy(false);
+    }
   }, []);
 
   // Add chat
@@ -143,8 +135,8 @@ export default function SettingsPage() {
     }));
     setNewChatId('');
     setNewChatLabel('');
-    setHasChanges(true);
-  }, [newChatId, newChatLabel]);
+    markDirty();
+  }, [newChatId, newChatLabel, markDirty]);
 
   // Remove chat
   const removeChat = useCallback((chatId: string) => {
@@ -160,8 +152,8 @@ export default function SettingsPage() {
         },
       };
     });
-    setHasChanges(true);
-  }, []);
+    markDirty();
+  }, [markDirty]);
 
   const addBlockedChat = useCallback(() => {
     if (!newBlockedChatId.trim()) return;
@@ -176,8 +168,8 @@ export default function SettingsPage() {
       },
     }));
     setNewBlockedChatId('');
-    setHasChanges(true);
-  }, [newBlockedChatId]);
+    markDirty();
+  }, [newBlockedChatId, markDirty]);
 
   const removeBlockedChat = useCallback((chatId: string) => {
     setSettings((prev) => ({
@@ -187,43 +179,30 @@ export default function SettingsPage() {
         blockedChatIds: prev.telegram.blockedChatIds.filter((id) => id !== chatId),
       },
     }));
-    setHasChanges(true);
-  }, []);
+    markDirty();
+  }, [markDirty]);
 
-  // Save handler
+  // Save handler: whitelisted fields only, validated by POST /api/settings
   const handleSave = useCallback(async () => {
     setIsSaving(true);
+    setSaveError(null);
+    setSaveIssues([]);
     try {
-      if (!firestoreDb) {
-        setIsSaving(false);
-        return;
-      }
-
-      const ref = doc(firestoreDb, 'settings', 'default');
-      await setDoc(
-        ref,
-        {
-          trading: {
-            risk_mode: settings.trading.riskMode,
-            risk_value: settings.trading.riskValue,
-            max_open_positions: settings.trading.maxOpenPositions,
-            max_positions_per_symbol: settings.trading.maxPositionsPerSymbol,
-            max_signal_delay_sec: settings.trading.maxSignalDelay,
-            slippage_tol: settings.trading.slippageTol,
-            tp1_skip_buffer: settings.trading.tp1SkipBuffer,
-            paper_mode: settings.trading.paperMode,
-            kill_switch: settings.trading.killSwitch,
-            bybit_optional: settings.trading.bybitOptional,
-          },
+      await authedFetch('/api/settings', {
+        method: 'POST',
+        body: JSON.stringify({
           telegram: {
             allowed_chat_ids: settings.telegram.chatIds,
             blocked_chat_ids: settings.telegram.blockedChatIds,
             chat_id_labels: settings.telegram.chatIdLabels,
           },
-        },
-        { merge: true },
-      );
+        }),
+      });
+      dirtyRef.current = false;
       setHasChanges(false);
+    } catch (err) {
+      setSaveError(errorMessage(err, 'Save failed.'));
+      setSaveIssues(apiIssues(err));
     } finally {
       setIsSaving(false);
     }
@@ -232,7 +211,7 @@ export default function SettingsPage() {
   return (
     <DashboardLayout
       title="Settings"
-      subtitle="Configure trading parameters and integrations"
+      subtitle="Safety controls and Telegram channels"
       breadcrumbs={[{ label: 'Dashboard', href: '/' }, { label: 'Settings' }]}
     >
       <div className="space-y-4 pb-20">
@@ -241,109 +220,63 @@ export default function SettingsPage() {
             Loading settings from Firestore...
           </div>
         )}
+        {actionError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700">{actionError}</div>
+        )}
         {/* Safety Controls */}
         <CollapsibleSection
           title="Safety Controls"
           icon={<Shield className="h-4 w-4" />}
           defaultOpen
-          badge={settings.trading.killSwitch ? <StatusBadge status="danger" label="KILL ACTIVE" pulse size="sm" /> : undefined}
+          badge={killSwitch ? <StatusBadge status="danger" label="KILL ACTIVE" pulse size="sm" /> : undefined}
         >
           <div className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-4">
-              <div>
+              <div className="pr-4">
                 <p className="font-medium text-red-800">Kill Switch</p>
-                <p className="text-xs text-red-600">Stop all trading immediately</p>
+                <p className="text-xs text-red-600">
+                  Blocks new entries and pending orders. Open trades keep being protected and managed
+                  (partial closes, stop-loss, break-even, trailing). Close-all is on the Admin page.
+                </p>
               </div>
               <FormField
                 type="toggle"
-                value={settings.trading.killSwitch}
-                onChange={(val) => updateTrading('killSwitch', val)}
+                value={killSwitch}
+                disabled={killBusy}
+                onChange={(val) => void toggleKillSwitch(val)}
               />
             </div>
-            
-            <div className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <div>
-                <p className="font-medium text-amber-800">Paper Mode</p>
-                <p className="text-xs text-amber-600">Simulate trades without real money</p>
+
+            <div className="flex items-center justify-between rounded-lg border border-marine-navy/10 bg-marine-mist/50 p-4">
+              <div className="pr-4">
+                <p className="font-medium text-marine-navy">Execution mode</p>
+                <p className="text-xs text-marine-navy/60">
+                  Current mode: <span className="font-mono font-semibold uppercase">{executionMode}</span>
+                </p>
               </div>
-              <FormField
-                type="toggle"
-                value={settings.trading.paperMode}
-                onChange={(val) => updateTrading('paperMode', val)}
-              />
+              <Link href="/admin" className="text-xs font-medium text-marine-accent underline">
+                Change on Admin page
+              </Link>
             </div>
           </div>
         </CollapsibleSection>
 
-        {/* Risk & Position Sizing */}
+        {/* Where execution settings live */}
         <CollapsibleSection
-          title="Risk & Position Sizing"
+          title="Position sizing and limits"
           icon={<DollarSign className="h-4 w-4" />}
           defaultOpen
         >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              label="Risk Mode"
-              type="select"
-              value={settings.trading.riskMode}
-              onChange={(val) => updateTrading('riskMode', val)}
-              options={[
-                { value: 'FIXED_USDT', label: 'Fixed USDT' },
-                { value: 'PERCENT_BALANCE', label: '% of Balance' },
-                { value: 'FIXED_CONTRACTS', label: 'Fixed Contracts' },
-              ]}
-              hint="How to calculate position size"
-            />
-            
-            <FormField
-              label="Risk Value"
-              type="number"
-              value={settings.trading.riskValue}
-              onChange={(val) => updateTrading('riskValue', val)}
-              hint={settings.trading.riskMode === 'FIXED_USDT' ? 'USDT per trade' : 'Amount/percentage'}
-            />
-
-            <FormField
-              label="Max Open Positions"
-              type="number"
-              value={settings.trading.maxOpenPositions}
-              onChange={(val) => updateTrading('maxOpenPositions', val)}
-              hint="Maximum concurrent positions"
-            />
-            
-            <FormField
-              label="Max Per Symbol"
-              type="number"
-              value={settings.trading.maxPositionsPerSymbol}
-              onChange={(val) => updateTrading('maxPositionsPerSymbol', val)}
-              hint="Max positions per trading pair"
-            />
-
-            <FormField
-              label="Max Signal Delay (s)"
-              type="number"
-              value={settings.trading.maxSignalDelay}
-              onChange={(val) => updateTrading('maxSignalDelay', val)}
-              hint="Ignore signals older than this"
-            />
-            
-            <FormField
-              label="Slippage Tolerance"
-              type="number"
-              value={settings.trading.slippageTol}
-              onChange={(val) => updateTrading('slippageTol', val)}
-              hint="0.001 = 0.1%"
-              step={0.0001}
-            />
-
-            <FormField
-              label="TP1 Skip Buffer"
-              type="number"
-              value={settings.trading.tp1SkipBuffer}
-              onChange={(val) => updateTrading('tp1SkipBuffer', val)}
-              hint="Skip entry if past TP1 by this %"
-              step={0.0001}
-            />
+          <div className="space-y-2 text-sm text-marine-navy/80">
+            <p>
+              Lot size, risk per trade, take-profit split, stop-loss rules and signal age come from the{' '}
+              <Link href="/profiles" className="font-medium text-marine-accent underline">active execution profile</Link>.
+              Account-wide caps (risk, lots, positions, daily loss, spread) are the{' '}
+              <Link href="/admin" className="font-medium text-marine-accent underline">safety limits</Link>, which every profile must fit.
+            </p>
+            <p className="text-xs text-marine-navy/60">
+              The older risk-mode and slippage settings from the Bybit version are no longer used and were removed from this page.
+            </p>
           </div>
         </CollapsibleSection>
 
@@ -451,33 +384,17 @@ export default function SettingsPage() {
         {/* Integrations */}
         <CollapsibleSection
           title="Integrations"
-          icon={<Link className="h-4 w-4" />}
+          icon={<LinkIcon className="h-4 w-4" />}
         >
-          <div className="space-y-4">
-            <div className="flex items-center justify-between rounded-lg border border-marine-navy/10 p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-400 to-orange-500">
-                  <span className="text-lg font-bold text-white">B</span>
-                </div>
-                <div>
-                  <p className="font-medium text-marine-navy">Bybit API</p>
-                  <p className="text-xs text-marine-navy/60">Connected as main exchange</p>
-                </div>
-              </div>
-              <StatusBadge status="success" label="Connected" />
+          <div className="flex items-center justify-between rounded-lg border border-marine-navy/10 p-4">
+            <div>
+              <p className="font-medium text-marine-navy">Vantage MT5</p>
+              <p className="text-xs text-marine-navy/60">
+                Orders go through VantageBridgeEA v2 on the VPS. Whether anything is sent is decided by the execution mode
+                and kill switch above, never by a setting here.
+              </p>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-marine-navy">Bybit Optional</p>
-                <p className="text-xs text-marine-navy/60">Allow trading without Bybit connection</p>
-              </div>
-              <FormField
-                type="toggle"
-                value={settings.trading.bybitOptional}
-                onChange={(val) => updateTrading('bybitOptional', val)}
-              />
-            </div>
+            <StatusBadge status="info" label={executionMode} />
           </div>
         </CollapsibleSection>
       </div>
@@ -490,23 +407,35 @@ export default function SettingsPage() {
           ${hasChanges ? 'translate-y-0' : 'translate-y-full'}
         `}
       >
-        <div className="mx-auto flex max-w-4xl items-center justify-between">
-          <p className="text-sm text-marine-navy/60">You have unsaved changes</p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setSettings(DEFAULT_SETTINGS);
-                setHasChanges(true);
-              }}
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Reset
-            </Button>
-            <Button onClick={handleSave} isLoading={isSaving}>
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </Button>
+        <div className="mx-auto max-w-4xl">
+          {saveError && (
+            <div className="mb-2 text-xs text-red-600">
+              <p>{saveError}</p>
+              {saveIssues.map((issue) => (
+                <p key={issue.path} className="font-mono">
+                  {issue.path}: {issue.message}
+                </p>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-marine-navy/60">You have unsaved changes</p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSettings(DEFAULT_SETTINGS);
+                  markDirty();
+                }}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Reset
+              </Button>
+              <Button onClick={handleSave} isLoading={isSaving}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </div>
       </div>

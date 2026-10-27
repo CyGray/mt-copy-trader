@@ -1,174 +1,123 @@
-# ByTrader: Automated Telegram to Bybit Crypto Copy Trading System
+# ByTrader: Telegram signal forwarder and Vantage MT5 AutoTrader
 
-ByTrader is an automated cryptocurrency trading system designed to bridge Telegram signal channels with Bybit Unified Trading Accounts (USDT Perpetuals). It listens to private signal channels via MTProto user sessions, extracts structured trading parameters, and executes orders with dynamic risk management and automated position management.
+ByTrader listens to private Telegram signal channels as a user account, parses
+gold (XAUUSD) trade signals, forwards them to a destination channel, and can
+execute them on a Vantage MetaTrader 5 account through a small Expert Advisor
+bridge. A Next.js dashboard provides monitoring, execution profiles, safety
+limits, alerts and emergency controls.
 
-The system includes a mobile-first Next.js web dashboard for real-time monitoring, analytics, configuration, and emergency control.
+> **Status.** Execution is implemented and tested offline (simulated broker,
+> in-memory Firestore, Firestore emulator). It has **not** been verified against
+> Vantage: no order has been sent through the current bridge protocol. Do not
+> run it against a live account. See
+> `docs/project_memory/VANTAGE_TEST_REPORT.md` and
+> `docs/project_memory/VANTAGE_BROKER_ASSUMPTIONS.md`.
 
 ---
 
-## Key Features
+## Key features
 
-- Telegram MTProto Integration: Operates as a user client to monitor private channels, forwarded messages, replies, and edits without requiring bot admin permissions.
-- Robust Signal Parsing: Parses structured trade setups including symbol, direction (Long/Short), entry targets, Stop Loss (SL), and Take Profit levels (TP1 to TP3).
-- Automated Bybit Execution: Executes USDT Perpetual orders on Bybit Unified Trading Account with configurable leverage and margin modes.
-- Dynamic Risk Management:
-  - Automatic position sizing based on risk per trade or fixed margin.
-  - Automated stop-loss updates (moves SL to entry after TP1 fill, locks profits after TP2 fill).
-  - Configurable safety limits: maximum open positions, maximum exposure per symbol, maximum daily drawdown, and consecutive loss circuit breakers.
-- State Synchronization: Uses Google Cloud Firestore as the single source of truth, backed by a 15-second background reconciliation loop against Bybit live order and position states.
-- Web Management Dashboard: Responsive Next.js PWA interface providing live PnL, open position tracking, trade history, Telegram session management, and system logs.
-- Security and Access Control: Google OAuth with role-based access (Admin and Viewer roles) and AES-GCM encryption for stored API keys and Telegram session credentials.
-- Emergency Overrides: Dashboard-accessible global kill switch and immediate emergency close-all capability.
-- Multi-Channel Notifications: Alerts dispatched via Telegram, Email (SMTP), and Web Push (VAPID).
+- **Telegram user-session listener** (MTProto): channels, edits and replies, no bot admin rights needed. Signals are forwarded in a fixed format whether or not execution is enabled.
+- **Durable hand-off** between the forwarder and the AutoTrader through Firestore: per-event queue state, leases, backoff, dead letters with operator requeue/discard, and a local outbox when Firestore is unreachable.
+- **Execution modes**: `disabled`, `paper` (simulated fills on live quotes, never sends orders), `demo` (DEMO accounts only) and `live` (REAL account plus an explicit environment flag).
+- **Execution profiles** ("Optimal Report"): versioned, strictly validated settings for sizing, entries, partial take-profits, stop-loss moves, edits and cancels, with draft → approve → activate → rollback. Each trade keeps the profile it started with.
+- **Safety**: account-wide hard limits, fail-closed configuration, kill switch, emergency close-all, broker-side SL/TP on every entry, and gates for spread, signal age, quote staleness, clock skew, exposure and daily loss.
+- **Order-outcome safety**: intent is recorded before every order, a timed-out order is never resent, and the reconciler settles unknown outcomes from broker state.
+- **Operator alerts** on the dashboard (bridge, unresolved orders, failed partial closes or stop moves, unknown positions, Firestore, configuration, service health), with optional webhook or Telegram-bot notifications (off by default).
+- **Access control**: Google sign-in limited to an email allow-list (refuses everyone when unset), admin role for every change, and Firestore rules that deny all client writes.
 
 ---
 
 ## Architecture
 
-ByTrader is structured as a TypeScript monorepo managed via Docker Compose:
-
 ```
-bytrader/
-|-- web/                  # Next.js frontend and dashboard API
-|   |-- src/app/          # Next.js App Router pages and API routes
-|   |-- src/components/   # Reusable UI components and layouts
-|   \-- src/lib/          # Firebase client/admin, auth helpers, API clients
-|-- worker/               # Background trading and execution engine
-|   |-- src/index.ts      # Worker entrypoint and reconciliation loop
-|   \-- src/lib/          # Telegram listener, parser, Bybit client, trade engine
-|-- docker-compose.yml    # Container orchestration for web and worker services
-\-- .env.example          # Environment variable template
+web/                    Next.js 14 dashboard and server-verified API routes
+worker/src/index.ts     Forwarder (:4000): owns the Telegram session, forwards, publishes signal_events
+worker/src/autotrader.ts AutoTrader (:4001): signal queue, engine, lifecycle, reconciler, alerts
+worker/src/lib/         Worker modules and co-located Vitest tests
+mql5/VantageBridgeEA.mq5 ZeroMQ bridge inside MT5 (protocol v2, localhost only)
+deploy/                 systemd units, deploy/rollback scripts, MT5 GUI scripts
+tests/firestore-rules/  Firestore security rules tests (emulator)
 ```
 
-### Services
+The two worker services communicate only through Firestore and can be restarted
+independently. Firestore holds configuration and state; the EA is the source of
+truth for broker state. Details: `docs/project_memory/ARCHITECTURE.md` and
+`docs/project_memory/VANTAGE_DESIGN_CONTRACTS.md`.
 
-1. Worker Service (`worker`):
-   - Maintains persistent MTProto connection to Telegram.
-   - Parses signals and dispatches execution instructions.
-   - Communicates with Bybit v5 API for order placement and position adjustments.
-   - Periodically reconciles local Firestore state with remote exchange state.
-   - Exposes a health endpoint at `http://localhost:4000/health`.
+## Tech stack
 
-2. Web Dashboard (`web`):
-   - Next.js application exposing the user interface at `http://localhost:3000`.
-   - Connects to Firestore for live data feeds and configuration management.
-   - Exposes secure API routes for administrative operations and worker proxies.
+Next.js (App Router), React, TypeScript, Tailwind CSS · Node.js 20+, Express,
+GramJS, ZeroMQ · Google Cloud Firestore, Firebase Authentication · MQL5 ·
+Vitest, Firebase emulator · systemd (VPS) or Docker Compose.
 
 ---
 
-## Tech Stack
-
-- Frontend: Next.js (App Router), React, TypeScript, Tailwind CSS
-- Backend Engine: Node.js, TypeScript
-- Database and Auth: Google Cloud Firestore, Firebase Authentication
-- External Integrations: Telegram MTProto API, Bybit v5 REST API
-- Deployment: Docker, Docker Compose
-
----
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-- Node.js 18 or higher
-- npm 9 or higher
-- Docker and Docker Compose (for containerized deployment)
-- Telegram API credentials (`api_id` and `api_hash` from my.telegram.org)
-- Bybit account with API key and secret (read and trade permissions for Unified Trading Account)
-- Firebase project with Firestore and Authentication enabled
+- Node.js 20 or newer, npm 9 or newer
+- Telegram API credentials (`api_id`, `api_hash`)
+- A Firebase project with Firestore and Authentication
+- For execution: a Windows/Wine MetaTrader 5 terminal with `VantageBridgeEA` attached (`deploy/MT5_GUI.md`)
+- For the rules tests: Java 21 (downloaded automatically if missing)
 
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/CyGray/mt-copy-trader.git
-   cd mt-copy-trader
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   ```
-   Populate `.env` with required API keys, database credentials, and secrets.
-
-4. Initialize Firestore collections:
-   ```bash
-   npm run seed:firestore --workspace worker
-   ```
-
-### Running Locally
-
-To run both `web` and `worker` in development mode:
+### Install and run locally
 
 ```bash
-npm run dev
+npm install
+cp .env.example .env.local          # fill in values; never commit it
+npm run dev                         # web :3000 + forwarder :4000
+npm run dev:autotrader              # the AutoTrader (separately)
 ```
 
-Alternatively, run each workspace independently:
+Do not run a development AutoTrader against the same Firestore project and MT5
+account as a production one.
+
+### Tests
 
 ```bash
-# Start Next.js dashboard
-npm run dev --workspace web
-
-# Start trading worker
-npm run dev --workspace worker
+npm run lint
+npm run typecheck
+npm test                 # worker
+npm run test:web         # dashboard API routes and view models
+npm run test:rules       # Firestore rules in the local emulator
 ```
 
-### Running with Docker Compose
+### Deployment
 
-Build and launch all services in detached mode:
-
-```bash
-docker-compose up -d --build
-```
-
-View service logs:
-
-```bash
-docker-compose logs -f
-```
+On the VPS the services run as systemd user units from `worker/dist/`. Deploy
+with `deploy/deploy-v2.sh` (a dry run unless `--execute`); see
+`docs/project_memory/VANTAGE_EXECUTION_GUIDE.md` §17. Start with execution
+`disabled`, and enable demo trading only through the checklist in §16.
 
 ---
 
-## Configuration Reference
+## Configuration
 
-Key environment variables defined in `.env.example`:
+`.env.example` documents every variable. The most important:
 
-- `MASTER_KEY`: 32-byte base64 string used for AES-GCM secret encryption.
-- `WORKER_URL`: HTTP endpoint of the worker service (default: `http://localhost:4000`).
-- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`: Service account credentials for server-side Firestore operations.
-- `NEXT_PUBLIC_FIREBASE_*`: Firebase Client SDK settings for web authentication and dashboard updates.
-- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`: Telegram application credentials.
-- `TELEGRAM_SESSION_PATH`: Filesystem destination for the encrypted Telegram session file.
-- `BYBIT_API_KEY`, `BYBIT_API_SECRET`: Bybit credentials for order execution.
-- `BYBIT_TESTNET`: Set to `true` for paper trading / testnet, or `false` for live execution.
-- `SMTP_*`: Optional configuration for email notifications.
-- `VAPID_*`: Optional configuration for Web Push notifications.
+- `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`: service account for the worker and web server.
+- `NEXT_PUBLIC_FIREBASE_*`: client SDK settings for the dashboard.
+- `ALLOWED_EMAILS`: comma-separated dashboard allow-list. **Required**; unset refuses everyone.
+- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `TELEGRAM_SESSION_PATH`, `MASTER_KEY`: Telegram session and its encryption.
+- `WORKER_API_TOKEN`: bearer token for the worker HTTP APIs (loopback-only when unset).
+- `MT5_ZMQ_ENDPOINT`: bridge endpoint, loopback only (default `tcp://127.0.0.1:5555`).
+- `BYTRADER_LIVE_TRADING`: must be exactly `enabled` before live mode can open trades.
+- `ALERT_*`: optional external alert notifications (off by default).
 
----
-
-## Trade Lifecycle
-
-1. Signal Detection: Telegram listener captures message from configured channel.
-2. Parsing and Validation: Parser extracts trade parameters and checks for invalid formats or outdated market entries.
-3. Order Execution: Worker places entry order and initial Stop Loss order on Bybit.
-4. Take Profit Management: Three reduce-only take-profit orders are submitted (60% at TP1, 25% at TP2, 15% at TP3).
-5. Dynamic Adjustment: When TP1 fills, Stop Loss is amended to the entry price. When TP2 fills, Stop Loss is amended to the TP1 price.
-6. Position Close: Trade marks completed in Firestore once all targets or stop-loss trigger.
+Execution mode, kill switch, safety limits and execution profiles live in
+Firestore and are changed from the dashboard (Admin and Profiles pages).
 
 ---
 
-## Security Practices
+## Security practices
 
-- Secret Protection: Never commit `.env` files or session tokens to version control.
-- API Key Scoping: Use Bybit API keys restricted to necessary trade permissions and bound to trusted server IP addresses.
-- Encrypted Storage: Telegram MTProto credentials and exchange secrets are encrypted at rest using AES-GCM.
-- Access Control: Web dashboard routes enforce Firebase authentication with role validation.
+- Never commit `.env*` files, service-account keys or the Telegram session.
+- The bridge and the worker APIs listen on loopback only.
+- Every dashboard change goes through a server route that checks the token, the allow-list and the admin role, and writes an audit entry.
+- Alerts and logs redact credential-shaped values; health endpoints expose no secrets.
 
 ---
 

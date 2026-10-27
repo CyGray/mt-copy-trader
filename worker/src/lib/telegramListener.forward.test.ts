@@ -45,9 +45,8 @@ function buildHarness() {
     logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
   }));
   vi.doMock('./systemLog', () => ({ writeSystemLog: vi.fn(async () => undefined) }));
-  vi.doMock('./tradeEngine', () => ({ handleParsedSignal: vi.fn(async () => undefined) }));
   vi.doMock('./signalForwarding', () => ({ forwardGoldSignal: vi.fn(async () => true) }));
-  vi.doMock('./signalEvents', () => ({ publishSignalEvent: vi.fn(async () => undefined) }));
+  vi.doMock('./signalEvents', () => ({ publishSignalEvent: vi.fn(async () => true) }));
   vi.doMock('./mt5TradeEngine', () => ({
     handleGoldSignal: vi.fn(async () => undefined),
     cancelGoldTrade: vi.fn(async () => undefined),

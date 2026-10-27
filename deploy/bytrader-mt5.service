@@ -1,0 +1,16 @@
+[Unit]
+Description=ByTrader MT5 terminal (Xvfb + Wine, VantageBridgeEA attached)
+After=default.target
+
+[Service]
+# deploy/mt5-start.sh logs in with MT5_* from the repo .env (temporary 0600
+# startup config, deleted after start), attaches VantageBridgeEA and waits for
+# 127.0.0.1:5555. It refuses non-demo servers unless MT5_ALLOW_NON_DEMO=1.
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/kyle/projects/ByTrader/deploy/mt5-start.sh
+TimeoutStartSec=300
+Environment=WINEPREFIX=/home/kyle/.wine-mt5
+
+[Install]
+WantedBy=default.target

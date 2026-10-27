@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getWorkerUrl } from '@/lib/workerApi';
+import type { NextRequest } from 'next/server';
+import { isResponse, requireAdmin } from '@/lib/serverAuth';
+import { getWorkerUrl, workerHeaders } from '@/lib/workerApi';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdmin(request);
+  if (isResponse(auth)) return auth;
+
   const body = (await request.json()) as { code?: string };
   if (!body.code) {
     return NextResponse.json({ error: 'Missing code' }, { status: 400 });
@@ -10,7 +15,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(`${getWorkerUrl()}/telegram/verify-otp`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: workerHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ code: body.code }),
     });
     const data = await response.json();

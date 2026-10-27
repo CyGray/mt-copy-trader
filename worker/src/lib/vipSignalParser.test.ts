@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseGoldSignal } from './vipSignalParser';
+import { detectCancelIntent, parseGoldSignal } from './vipSignalParser';
 
 describe('parseGoldSignal', () => {
   it('parses a POSITION sell signal with OPEN range', () => {
@@ -174,5 +174,60 @@ TP2 : 4100`);
     expect(result.ok).toBe(false);
     if (result.ok === true) throw new Error('expected parse to fail');
     expect(result.error).toBe('invalid_sl_side');
+  });
+});
+
+describe('detectCancelIntent', () => {
+  it('detects clear cancellation language, case-insensitively', () => {
+    const positives = [
+      'cancel',
+      'Cancelled',
+      'CANCELED',
+      'cancel signal',
+      'Signal cancelled',
+      'Delete this signal',
+      'ignore this signal',
+      'Invalid signal',
+      'Signal cancelled ❌',
+    ];
+    for (const text of positives) {
+      expect(detectCancelIntent(text), text).toBe(true);
+    }
+  });
+
+  it('ignores close instructions and unrelated updates', () => {
+    const negatives = [
+      'close now',
+      'TP1 HIT ✅ move SL to entry',
+      'Cancellation fee applies',
+      '',
+      '   ',
+    ];
+    for (const text of negatives) {
+      expect(detectCancelIntent(text), text).toBe(false);
+    }
+  });
+
+  it('does not treat a negated phrase as a cancel', () => {
+    expect(detectCancelIntent("Don't cancel your plans, TP1 hit")).toBe(false);
+    expect(detectCancelIntent('Do not cancel')).toBe(false);
+  });
+
+  it('ignores long messages even when they contain a cancel word', () => {
+    const long =
+      "Market update: the London session was choppy and several traders asked whether we should cancel the rest of the week's plan, so we will stay patient for now.";
+    expect(long.length).toBeGreaterThan(120);
+    expect(detectCancelIntent(long)).toBe(false);
+  });
+
+  it('never treats a valid signal as a cancel', () => {
+    const signal = `SELL GOLD NOW
+OPEN : 4028-4032
+SL : 4040
+TP1 : 4020
+TP2 : 4013
+(cancel if not filled)`;
+    expect(parseGoldSignal(signal).ok).toBe(true);
+    expect(detectCancelIntent(signal)).toBe(false);
   });
 });

@@ -1,8 +1,6 @@
 'use client';
 
-import { memo, type ReactNode, type ChangeEvent } from 'react';
-
-type FormFieldType = 'text' | 'number' | 'select' | 'toggle';
+import { memo, type ChangeEvent } from 'react';
 
 interface BaseFormFieldProps {
   label: string;
@@ -13,7 +11,7 @@ interface BaseFormFieldProps {
 }
 
 interface TextFieldProps extends BaseFormFieldProps {
-  type: 'text';
+  type: 'text' | 'password';
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -123,7 +121,7 @@ function FormFieldComponent(props: FormFieldProps) {
     // text type
     return (
       <input
-        type="text"
+        type={props.type}
         value={props.value}
         onChange={(e: ChangeEvent<HTMLInputElement>) => props.onChange(e.target.value)}
         placeholder={props.placeholder}

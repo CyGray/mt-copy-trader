@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { firestoreDb } from '@/lib/firebaseClient';
+import { ApiError, authedFetch, errorMessage } from '@/lib/adminApi';
 
 type TelegramStep = 'phone' | 'otp' | 'password' | 'connected';
 
@@ -27,6 +28,10 @@ type TelegramStatusResponse = {
   lastError?: string | null;
   reauthRequired?: boolean;
 };
+
+function isTelegramStatus(body: unknown): body is TelegramStatusResponse {
+  return Boolean(body) && typeof body === 'object' && typeof (body as { status?: unknown }).status === 'string';
+}
 
 export default function TelegramPage() {
   const [step, setStep] = useState<TelegramStep>('phone');
@@ -70,15 +75,15 @@ export default function TelegramPage() {
 
     const fetchStatus = async () => {
       try {
-        const response = await fetch('/api/telegram/status', { cache: 'no-store' });
-        if (!response.ok) return;
-        const data = (await response.json()) as TelegramStatusResponse;
+        const data = await authedFetch<TelegramStatusResponse>('/api/telegram/status');
         if (active) {
           if (data.phone && !phone) setPhone(data.phone);
           applyStatus(data);
         }
-      } catch {
-        if (active) setError('Unable to reach Telegram worker.');
+      } catch (err) {
+        // Not signed in yet: DashboardLayout redirects to /login, so stay quiet.
+        if (!active || (err instanceof ApiError && err.status === 401)) return;
+        setError(err instanceof ApiError && err.status === 502 ? 'Unable to reach Telegram worker.' : errorMessage(err, 'Unable to reach Telegram worker.'));
       }
     };
 
@@ -94,86 +99,54 @@ export default function TelegramPage() {
     if (!firestoreDb) return;
     const ref = doc(firestoreDb, 'settings', 'default');
     const unsubscribe = onSnapshot(ref, (snap) => {
-      const data = snap.data() as { telegram?: { allowed_chat_ids?: string[]; chat_labels?: Record<string, string> } } | undefined;
+      const data = snap.data() as { telegram?: { allowed_chat_ids?: string[]; chat_id_labels?: Record<string, string> } } | undefined;
       setAllowedChats(data?.telegram?.allowed_chat_ids ?? []);
-      setChatLabels(data?.telegram?.chat_labels ?? {});
+      setChatLabels(data?.telegram?.chat_id_labels ?? {});
     });
     return () => unsubscribe();
   }, []);
 
+  const postTelegram = useCallback(
+    async (path: string, payload: Record<string, string>, fallbackError: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await authedFetch<TelegramStatusResponse>(path, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        applyStatus(data);
+        return true;
+      } catch (err) {
+        if (err instanceof ApiError && isTelegramStatus(err.body)) applyStatus(err.body);
+        setError(errorMessage(err, fallbackError));
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [applyStatus],
+  );
+
   const handlePhoneSubmit = useCallback(async () => {
     if (!phone.trim()) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/telegram/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone }),
-      });
-      const data = (await response.json()) as TelegramStatusResponse;
-      applyStatus(data);
-      if (!response.ok) {
-        setError(data.lastError ?? 'Unable to start Telegram login.');
-      }
-    } catch {
-      setError('Worker unreachable');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [phone]);
+    await postTelegram('/api/telegram/start', { phone }, 'Unable to start Telegram login.');
+  }, [phone, postTelegram]);
 
   const handleOtpSubmit = useCallback(async () => {
     if (!otp.trim()) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/telegram/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: otp }),
-      });
-      const data = (await response.json()) as TelegramStatusResponse;
-      applyStatus(data);
-      if (!response.ok) {
-        setError(data.lastError ?? 'Code not accepted.');
-      }
-    } catch {
-      setError('Worker unreachable');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [otp]);
+    await postTelegram('/api/telegram/verify-otp', { code: otp }, 'Code not accepted.');
+  }, [otp, postTelegram]);
 
   const handlePasswordSubmit = useCallback(async () => {
     if (!password.trim()) return;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/telegram/verify-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const data = (await response.json()) as TelegramStatusResponse;
-      applyStatus(data);
-      if (!response.ok) {
-        setError(data.lastError ?? 'Password not accepted.');
-      }
-    } catch {
-      setError('Worker unreachable');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [password]);
+    await postTelegram('/api/telegram/verify-password', { password }, 'Password not accepted.');
+  }, [password, postTelegram]);
 
   const handleLogout = useCallback(async () => {
     setIsLoading(true);
     try {
-      await fetch('/api/telegram/logout', { method: 'POST' });
+      await authedFetch('/api/telegram/logout', { method: 'POST' });
     } catch {
       setError('Worker unreachable');
     } finally {
@@ -189,7 +162,7 @@ export default function TelegramPage() {
     setIsLoading(true);
     setError(null);
     try {
-      await fetch('/api/telegram/logout', { method: 'POST' });
+      await authedFetch('/api/telegram/logout', { method: 'POST' });
     } catch {
       setError('Worker unreachable');
     } finally {
@@ -275,7 +248,7 @@ export default function TelegramPage() {
             </div>
             <FormField
               label="2FA Password"
-              type="text"
+              type="password"
               value={password}
               onChange={setPassword}
               placeholder="Your 2FA password"

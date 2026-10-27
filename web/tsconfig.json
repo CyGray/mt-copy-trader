@@ -6,7 +6,8 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../worker/src/lib/*"]
     },
     "plugins": [
       {

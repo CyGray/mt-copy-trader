@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
+import { AlertBanner } from '@/components/dashboard/AlertBanner';
 import { MetricCard } from '@/components/ui/MetricCard';
 import { ActivityFeed, type ActivityItem } from '@/components/ui/ActivityFeed';
 import { StatusBar } from '@/components/dashboard/StatusBar';
@@ -18,8 +19,10 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import Link from 'next/link';
-import { collection, doc, onSnapshot, orderBy, query, limit, setDoc } from 'firebase/firestore';
-import { firestoreDb } from '@/lib/firebaseClient';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { collection, doc, onSnapshot, orderBy, query, limit } from 'firebase/firestore';
+import { firestoreDb, firebaseAuth } from '@/lib/firebaseClient';
+import { ApiError, authedFetch, errorMessage } from '@/lib/adminApi';
 import { formatTimestamp } from '@/lib/format';
 
 type Trade = {
@@ -49,16 +52,12 @@ type TelegramMessage = {
   parsedSymbol?: string;
 };
 
-type Settings = {
-  trading: {
-    paperMode: boolean;
-    killSwitch: boolean;
-  };
-};
-
 export default function DashboardPage() {
   const [killSwitch, setKillSwitch] = useState(false);
-  const [paperMode, setPaperMode] = useState(false);
+  const [killSwitchBusy, setKillSwitchBusy] = useState(false);
+  const [killSwitchError, setKillSwitchError] = useState<string | null>(null);
+  const [executionMode, setExecutionMode] = useState<string>('disabled');
+  const [activeProfileId, setActiveProfileId] = useState<string | null>(null);
   const [trades, setTrades] = useState<Trade[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLogItem[]>([]);
   const [recentMessages, setRecentMessages] = useState<TelegramMessage[]>([]);
@@ -204,11 +203,13 @@ export default function DashboardPage() {
 
     const unsubscribeSettings = onSnapshot(settingsRef, (snap) => {
       const data = snap.data() as {
-        trading?: { paper_mode?: boolean; kill_switch?: boolean };
+        trading?: { kill_switch?: boolean };
         telegram?: { chat_id_labels?: Record<string, string> };
+        execution?: { mode?: string; active_profile_doc_id?: string | null };
       } | undefined;
-      setPaperMode(Boolean(data?.trading?.paper_mode));
-      setKillSwitch(Boolean(data?.trading?.kill_switch));
+      setKillSwitch(data?.trading?.kill_switch === true);
+      setExecutionMode(typeof data?.execution?.mode === 'string' ? data.execution.mode : 'disabled');
+      setActiveProfileId(data?.execution?.active_profile_doc_id ?? null);
       setChatLabels(data?.telegram?.chat_id_labels ?? {});
     });
 
@@ -223,15 +224,17 @@ export default function DashboardPage() {
   useEffect(() => {
     let active = true;
     const fetchWorkerHealth = async () => {
+      // Wait for a Firebase session; the route rejects anonymous callers.
+      if (!firebaseAuth?.currentUser) return;
       try {
-        const response = await fetch('/api/worker/health', { cache: 'no-store' });
-        if (!response.ok) return;
-        const payload = (await response.json()) as { data?: { status?: string; telegram?: string } };
+        const payload = await authedFetch<{ data?: { status?: string; telegram?: string } }>('/api/worker/health');
         if (!active) return;
         setWorkerStatus(payload.data?.status === 'ok' ? 'online' : 'offline');
         setTelegramStatus(payload.data?.telegram === 'authorized' ? 'connected' : 'disconnected');
-      } catch {
-        if (active) setWorkerStatus('offline');
+      } catch (err) {
+        if (!active) return;
+        if (err instanceof ApiError && err.status === 401) return;
+        setWorkerStatus('offline');
       }
     };
 
@@ -271,13 +274,23 @@ export default function DashboardPage() {
     }));
   }, [systemLogs]);
 
-  const updateTradingFlag = async (field: 'kill_switch' | 'paper_mode', value: boolean) => {
-    if (!firestoreDb) return;
-    await setDoc(
-      doc(firestoreDb, 'settings', 'default'),
-      { trading: { [field]: value } },
-      { merge: true },
-    );
+  const setKillSwitchViaApi = async (engaged: boolean) => {
+    if (!engaged && !window.confirm('Release the kill switch? New entries can resume if the mode and active profile allow them.')) {
+      return;
+    }
+    setKillSwitchBusy(true);
+    setKillSwitchError(null);
+    try {
+      await authedFetch('/api/execution/kill-switch', {
+        method: 'POST',
+        body: JSON.stringify({ engaged }),
+      });
+      setKillSwitch(engaged);
+    } catch (err) {
+      setKillSwitchError(errorMessage(err, 'Kill switch change failed.'));
+    } finally {
+      setKillSwitchBusy(false);
+    }
   };
 
   return (
@@ -287,6 +300,7 @@ export default function DashboardPage() {
       breadcrumbs={[{ label: 'Dashboard' }]}
     >
       <div className="space-y-2 sm:space-y-4 px-1 sm:px-0">
+        <AlertBanner />
         {workerStatus === 'offline' && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-700">
             Worker is offline. Start the worker service (port 4000) or set WORKER_URL / WORKER_HEALTH_URL.
@@ -307,6 +321,21 @@ export default function DashboardPage() {
           workerStatus={workerStatus}
           compact
         />
+        {/* Execution state (read-only here; change it on the Admin page) */}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg border border-marine-navy/10 bg-white px-3 py-2 text-xs text-marine-navy/70 shadow-sm">
+          <span>
+            Mode <span className="font-mono font-semibold uppercase text-marine-navy">{executionMode}</span>
+          </span>
+          <StatusBadge
+            status={killSwitch ? 'danger' : 'success'}
+            label={killSwitch ? 'Kill switch engaged' : 'Kill switch released'}
+            size="sm"
+          />
+          <span>
+            Profile <span className="font-mono text-marine-navy">{activeProfileId ?? 'none'}</span>
+          </span>
+          {killSwitchError ? <span className="text-red-600">{killSwitchError}</span> : null}
+        </div>
         {/* Metrics Row */}
         <div className="grid gap-2 sm:gap-3 grid-cols-2 sm:grid-cols-4">
           <MetricCard
@@ -339,17 +368,8 @@ export default function DashboardPage() {
           <div className="hidden sm:block space-y-2 sm:space-y-4">
             <QuickActionsPanel
               killSwitchActive={killSwitch}
-              paperModeActive={paperMode}
-              onKillSwitch={() => {
-                const next = !killSwitch;
-                setKillSwitch(next);
-                void updateTradingFlag('kill_switch', next);
-              }}
-              onPaperMode={() => {
-                const next = !paperMode;
-                setPaperMode(next);
-                void updateTradingFlag('paper_mode', next);
-              }}
+              killSwitchDisabled={killSwitchBusy}
+              onKillSwitch={() => void setKillSwitchViaApi(!killSwitch)}
               onRefresh={() => window.location.reload()}
             />
           </div>

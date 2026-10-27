@@ -1,0 +1,16 @@
+# Build context for worker/Dockerfile (context = ./worker).
+# Keep secrets, the Telegram session and local state out of the image.
+node_modules
+dist
+coverage
+.env
+.env.*
+*.log
+*.session
+*.enc
+# Telegram session storage (cwd-relative default; see deploy/SERVICES.md)
+data
+worker/data
+service-account*.json
+.git
+.DS_Store

@@ -1,31 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getAdminApp } from '@/lib/firebaseAdmin';
+import type { NextRequest } from 'next/server';
+import { getAdminDb, jsonError } from '@/lib/adminControl';
+import { isResponse, requireUser } from '@/lib/serverAuth';
 
-export async function POST(request: Request) {
-  const adminApp = getAdminApp();
-  if (!adminApp) {
-    return NextResponse.json({ error: 'Admin not configured' }, { status: 500 });
-  }
+export const dynamic = 'force-dynamic';
 
-  const body = (await request.json()) as { token?: string };
-  const token = body.token;
-  if (!token) {
-    return NextResponse.json({ error: 'Missing token' }, { status: 400 });
-  }
+/**
+ * POST /api/admin/role: role of the caller. The token comes from the Authorization
+ * header or the session cookie (set by /api/session just before this call); a
+ * token in the body is no longer accepted. ALLOWED_EMAILS applies.
+ */
+export async function POST(request: NextRequest) {
+  const auth = await requireUser(request);
+  if (isResponse(auth)) return auth;
+
+  const db = getAdminDb();
+  if (!db) return jsonError('Admin not configured', 503);
 
   try {
-    const decoded = await adminApp.auth().verifyIdToken(token);
-    const userDoc = await adminApp
-      .firestore()
-      .collection('users')
-      .doc(decoded.uid)
-      .get();
-
-    return NextResponse.json({
-      uid: decoded.uid,
-      role: userDoc.data()?.role ?? 'viewer',
-    });
+    const snap = await db.collection('users').doc(auth.uid).get();
+    return NextResponse.json({ uid: auth.uid, role: snap.data()?.role ?? 'viewer' });
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return jsonError('Role lookup unavailable', 503);
   }
 }

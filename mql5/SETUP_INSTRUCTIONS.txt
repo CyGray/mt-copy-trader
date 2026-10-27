@@ -1,27 +1,122 @@
-; JAson.mqh — Bundled JSON library for MQL5
-; Source: https://github.com/nicholishen/KVJSon
-; This is a placeholder. The real JAson.mqh must be downloaded from:
-;
-;   https://www.mql5.com/en/code/13663
-;
-; Or use the community port:
-;   https://github.com/vivazzi/JAson
-;
-; Place the downloaded JAson.mqh into:
-;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Include/JAson.mqh
-;
-; And place the ZeroMQ include folder (from mql5-zmq) into:
-;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Include/Zmq/
-;
-; DLLs (libzmq.dll + Mql5Zmq.dll) go into:
-;   %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Libraries/
-;
-; Steps:
-;  1. Download mql5-zmq: https://github.com/dingmaotu/mql5-zmq/releases
-;     Copy: Include/Zmq/ and Libraries/libzmq.dll, Mql5Zmq.dll
-;  2. Download JAson.mqh from mql5.com code base (free, no account needed)
-;  3. Place VantageBridgeEA.mq5 in:
-;     %APPDATA%/MetaQuotes/Terminal/<ID>/MQL5/Experts/
-;  4. In MT5: File > Open Data Folder to find the Terminal <ID>
-;  5. Compile in MetaEditor (F7), attach to XAUUSD M1 chart
-;  6. Enable "Allow DLL imports" in EA settings
+VantageBridgeEA v2.0.0 - setup
+==============================
+
+The EA is a ZeroMQ REP bridge inside MetaTrader 5. The Node.js AutoTrader
+sends JSON requests on tcp://127.0.0.1:5555 and gets one JSON reply each.
+Protocol reference: mql5/PROTOCOL.md (section 1 of
+docs/project_memory/VANTAGE_DESIGN_CONTRACTS.md is the authoritative spec).
+
+This repository does NOT bundle the MQL5 dependencies. Install them first.
+
+
+1. Dependencies (into the MT5 data folder, MQL5/)
+-------------------------------------------------
+
+Find the data folder in MT5: File > Open Data Folder. For a portable install
+it is the terminal's install folder itself.
+
+  MQL5/Include/Zmq/        mql-zmq headers (the Socket.mqh, Context.mqh, ... files)
+  MQL5/Include/Mql/        Lang helpers that the Zmq headers include (Mql/Lang/*.mqh)
+  MQL5/Include/JAson.mqh   CJAVal JSON parser
+  MQL5/Libraries/libzmq.dll
+  MQL5/Libraries/libsodium.dll
+
+Notes:
+- The Zmq headers import libzmq.dll directly (Include/Zmq/Socket.mqh and
+  others). Mql5Zmq.dll is not needed for this header set. If you use a
+  different mql-zmq release, check its #import lines and match it.
+- Use the mql-zmq release whose headers match the VPS copy (a build-5100+
+  compatibility fork). Mixing header and DLL versions can fail at runtime.
+- JAson.mqh: download from https://www.mql5.com/en/code/13663 (free) or use
+  the vivazzi/JAson MQL5 port at https://github.com/vivazzi/JAson.
+
+
+2. Copy the EA source
+---------------------
+
+Copy mql5/VantageBridgeEA.mq5 into the top level of MQL5/Experts/.
+
+
+3. Compile
+----------
+
+In MetaEditor: open the file and press F7 (Compile). Check that the log
+ends with "0 errors". Warnings are acceptable.
+
+From a shell (Wine on the VPS), use paths relative to the MT5 install
+folder and avoid spaces in the argument itself, or wine will split it:
+
+  MetaEditor64.exe /compile:MQL5\Experts\VantageBridgeEA.mq5 /log:MQL5\Experts\compile.log
+
+Run it with the MT5 install folder as the working directory. Read the log
+(UTF-16) with: iconv -f UTF-16LE -t UTF-8 compile.log
+
+Do not recompile the deployed VantageBridgeEA.ex5 while the terminal is
+running with the EA attached. The terminal reloads the EA when the .ex5
+changes, which interrupts the bridge.
+
+
+4. Terminal settings
+--------------------
+
+- Toolbar: the "Algo Trading" button must be green (AutoTrading on).
+- Tools > Options > Expert Advisors: tick "Allow Algo Trading".
+- Tools > Options > Expert Advisors: tick "Allow DLL imports" (libzmq.dll).
+- Log in to the Vantage account in the terminal. The EA does not store
+  credentials.
+
+
+5. Attach the EA
+----------------
+
+Open an XAUUSD chart (M1 is what the VPS uses). Drag VantageBridgeEA onto
+the chart. In the EA's Common tab, tick "Allow Algo Trading" and
+"Allow DLL imports". Tick "Allow live trading" if the build shows it and
+the account is live.
+
+Inputs:
+
+  InpEndpoint        tcp://127.0.0.1:5555   ZeroMQ REP bind address (localhost only)
+  InpMagicNumber     98801                  EA magic. Requests with another magic get 5010.
+  InpDeviation       20                     Default slippage in points
+  InpPollIntervalMs  20                     Request poll period in ms. Clamped to 10 or more.
+  InpAutoSuffix      true                   Auto-detect the broker symbol suffix at init
+
+The EA processes requests from OnTimer (every InpPollIntervalMs) and from
+OnTick. It handles up to 20 queued requests per pass. It keeps working when
+the market is closed.
+
+Expert tab messages to look for on start:
+
+  [Bridge] v2.0.0 listening on tcp://127.0.0.1:5555 magic=98801 poll=20ms
+
+If you see "FATAL: cannot bind", another process is using the port, or a
+previous EA instance has not released it. Remove the EA from the chart and
+attach it again.
+
+
+6. Check it works
+-----------------
+
+PING does not need a trading session. A quick check from the Node side is
+the worker's AutoTrader health endpoint, which reports mt5Bridge once the
+client is in use:
+
+  curl -s localhost:4001/health
+
+Before relying on expires_at, compare PING.gmt_time (in the reply) against
+the host's UTC clock. Large skew means expiry checks will be wrong. See
+mql5/PROTOCOL.md, "Time bases".
+
+
+7. Known gaps
+-------------
+
+- The worker (worker/src/lib/mt5Client.ts) still sends v1 envelopes (no "v",
+  "request_id" or "expires_at"). Until the client is updated to v2, every
+  request is refused with 4001.
+- Items in mql5/PROTOCOL.md section "Verify on Vantage" are not yet checked
+  on the live server. Comment preservation, filling modes, expiration support
+  and the clock skew all need a check before live trading.
+- The EA has not been run against a live terminal from this repository. The
+  compile check passes; runtime behaviour is unverified.

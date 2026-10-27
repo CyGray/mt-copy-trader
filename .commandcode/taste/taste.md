@@ -1,0 +1,5 @@
+- Prefers evidence-based technical reports where each finding is explicitly labeled CONFIRMED, INFERRED, or UNVERIFIED, with exact repository-relative paths and line references. Confidence: 0.7
+- Never wants a claim that a test, command, or build passed unless it was actually run and its result observed; unverified items must be flagged as such rather than asserted as working. Confidence: 0.7
+- Requires that real credentials, secret values, tokens, and private keys never be included in outputs; sensitive values must be masked/redacted and secrets never transmitted. Confidence: 0.75
+- Prefers comprehensive but non-repetitive Markdown deliverables, using tables (and diagrams such as Mermaid where useful) instead of long prose. Confidence: 0.6
+- Prefers read-only inspection/reconnaissance before making any changes, with no creation, modification, or deletion of files until explicitly told to proceed. Confidence: 0.6

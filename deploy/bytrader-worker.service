@@ -8,6 +8,10 @@ User=kyle
 Group=kyle
 WorkingDirectory=/home/kyle/projects/ByTrader/worker
 
+# Bind the forwarder HTTP API to loopback only (never exposed on the network).
+# Note: values in EnvironmentFile override Environment=, so do not set WORKER_HOST in .env.local.
+Environment=WORKER_HOST=127.0.0.1
+
 # Load environment from the .env.local file
 EnvironmentFile=/home/kyle/projects/ByTrader/.env.local
 

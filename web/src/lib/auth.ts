@@ -1,9 +1,8 @@
 import { signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { firebaseAuth, firestoreDb, googleProvider } from './firebaseClient';
+import { firebaseAuth, googleProvider } from './firebaseClient';
 
 export async function signInWithGoogle(): Promise<void> {
-  if (!firebaseAuth || !googleProvider || !firestoreDb) {
+  if (!firebaseAuth || !googleProvider) {
     throw new Error('Firebase not initialized');
   }
 
@@ -32,16 +31,15 @@ export async function signInWithGoogle(): Promise<void> {
     throw error;
   }
 
-  const userRef = doc(firestoreDb, 'users', user.uid);
-  const snap = await getDoc(userRef);
-
-  if (!snap.exists()) {
-    await setDoc(userRef, {
-      uid: user.uid,
-      email: user.email ?? null,
-      role: 'viewer',
-      created_at: serverTimestamp(),
-    });
+  // First sign-in: the server creates users/{uid} as viewer if it is missing.
+  // Client writes to users/ are denied by firestore.rules.
+  const ensureResponse = await fetch('/api/users/ensure', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!ensureResponse.ok) {
+    const data = (await ensureResponse.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? 'Could not create the user profile.');
   }
 }
 

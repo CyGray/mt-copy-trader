@@ -1,0 +1,18 @@
+# Build context for web/Dockerfile (docker-compose.yml: web context = repository root).
+# The worker image uses its own context (./worker) and worker/.dockerignore.
+# Keep secrets, local state, the Telegram session and build output out of the image.
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+**/*.log
+**/*.session
+**/*.enc
+**/service-account*.json
+**/data
+.data
+.git
+.DS_Store

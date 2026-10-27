@@ -1,18 +1,19 @@
 import crypto from 'node:crypto';
 import { NewMessage, Raw } from 'telegram/events';
 import { EditedMessage } from 'telegram/events/EditedMessage';
-import { TelegramClient } from 'telegram';
 import { initFirestore } from './firestoreAdmin';
 import { logger } from './logger';
 import { writeSystemLog } from './systemLog';
 import { parseTelegramSignal } from './telegramParser';
-import { parseGoldSignal } from './vipSignalParser';
+import { detectCancelIntent, parseGoldSignal } from './vipSignalParser';
 import { forwardGoldSignal } from './signalForwarding';
 import { getTelegramClient, getTelegramStatus } from './telegramClient';
-import { handleParsedSignal } from './tradeEngine';
-import { publishSignalEvent } from './signalEvents';
+import { publishSignalEvent, type SignalCancelReason } from './signalEvents';
 
+// Single-flight startup: concurrent callers share one in-flight start, and the
+// started flag is set only after handlers are registered.
 let listenerStarted = false;
+let startInFlight: Promise<void> | null = null;
 let lastSettingsFetch = 0;
 let cachedAllowedChatIds: string[] | null = null;
 let cachedBlockedChatIds: string[] | null = null;
@@ -25,6 +26,10 @@ function isParseError(
   result: ReturnType<typeof parseTelegramSignal>,
 ): result is { ok: false; error: string } {
   return result.ok === false;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function hashText(text: string): string {
@@ -89,6 +94,18 @@ function getMessageId(message: unknown): string {
   if (!message || typeof message !== 'object') return 'unknown';
   const candidate = message as { id?: number | string };
   return candidate.id ? String(candidate.id) : 'unknown';
+}
+
+function getReplyToMessageId(message: unknown): string | null {
+  if (!message || typeof message !== 'object') return null;
+  const candidate = message as {
+    replyTo?: { replyToMsgId?: number | string | bigint | null } | null;
+    replyToMsgId?: number | string | bigint | null;
+  };
+  const raw = candidate.replyTo?.replyToMsgId ?? candidate.replyToMsgId;
+  if (raw == null) return null;
+  const id = toIdString(raw);
+  return id && id !== '0' ? id : null;
 }
 
 function getMessageDate(message: unknown): Date | null {
@@ -250,11 +267,7 @@ function isInboundMessage(message: unknown, selfUserId: string | null): boolean 
   return true;
 }
 
-async function logTelegramMessage(
-  type: 'new' | 'edit',
-  message: unknown,
-  client: TelegramClient,
-): Promise<void> {
+async function logTelegramMessage(type: 'new' | 'edit', message: unknown): Promise<void> {
   const firestore = initFirestore();
   if (!firestore) {
     logger.warn('firestore_not_configured', {
@@ -297,8 +310,16 @@ async function logTelegramMessage(
   const docId = `${chatId}_${messageId}_${hash}`;
   const docRef = firestore.collection('telegram_messages').doc(docId);
 
-  const existing = await docRef.get();
-  if (existing.exists) return;
+  // The message history (telegram_messages) is best effort: if Firestore fails here the signal
+  // is still forwarded where possible and published (signalEvents spools it locally).
+  let historyWritable = true;
+  try {
+    const existing = await docRef.get();
+    if (existing.exists) return;
+  } catch (error) {
+    historyWritable = false;
+    logger.error('telegram_message_dedupe_failed', { chatId, messageId, error: errorMessage(error) });
+  }
 
   const parsed: ReturnType<typeof parseTelegramSignal> = text
     ? parseTelegramSignal(text)
@@ -309,21 +330,27 @@ async function logTelegramMessage(
     parseError = parsed.error;
   }
 
-  await docRef.set({
-    chat_id: chatId,
-    message_id: messageId,
-    hash,
-    type,
-    text,
-    date: messageDate ? messageDate.toISOString() : null,
-    edit_date: editDate ? editDate.toISOString() : null,
-    parsed_ok: parsed.ok,
-    parsed: parsed.ok ? parsed.signal : null,
-    parse_error: parseError,
-    debug: debugEnvelope,
-    raw_message: rawMessage,
-    timestamp: new Date().toISOString(),
-  });
+  if (historyWritable) {
+    try {
+      await docRef.set({
+        chat_id: chatId,
+        message_id: messageId,
+        hash,
+        type,
+        text,
+        date: messageDate ? messageDate.toISOString() : null,
+        edit_date: editDate ? editDate.toISOString() : null,
+        parsed_ok: parsed.ok,
+        parsed: parsed.ok ? parsed.signal : null,
+        parse_error: parseError,
+        debug: debugEnvelope,
+        raw_message: rawMessage,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('telegram_message_log_failed', { chatId, messageId, error: errorMessage(error) });
+    }
+  }
 
   if (isParseError(parsed) && text) {
     await writeSystemLog('info', 'telegram_listener', 'signal_parse_failed', {
@@ -336,9 +363,14 @@ async function logTelegramMessage(
   if (text) {
     const goldSignal = parseGoldSignal(text);
     if (goldSignal.ok) {
-      await forwardGoldSignal(chatId, messageId, goldSignal.signal, hash);
+      try {
+        await forwardGoldSignal(chatId, messageId, goldSignal.signal, hash);
+      } catch (error) {
+        // Forward dedupe needs Firestore; without it the forward is skipped, but the event is still published.
+        logger.error('signal_forward_failed', { chatId, messageId, error: errorMessage(error) });
+      }
       // Hand the signal off to the AutoTrader service via Firestore.
-      await publishSignalEvent({
+      const published = await publishSignalEvent({
         chatId,
         messageId,
         messageType: type,
@@ -347,18 +379,40 @@ async function logTelegramMessage(
         signal: goldSignal.signal,
         messageDate,
       });
+      if (!published) {
+        await reportUnpublishedEvent(chatId, messageId, 'signal', type);
+      }
     } else if (type === 'edit') {
-      // An edit that no longer parses means the source pulled/cancelled the
-      // signal — let the AutoTrader close any position it opened for it.
-      await publishSignalEvent({
+      // An edit that no longer parses: the source cancelled or pulled the
+      // signal. The AutoTrader decides what that means for any trade.
+      await publishCancelEvent({
         chatId,
         messageId,
         messageType: type,
         textHash: hash,
-        kind: 'cancel',
-        signal: null,
         messageDate,
+        cancelReason: detectCancelIntent(text) ? 'explicit_cancel' : 'unparseable_edit',
       });
+    } else if (detectCancelIntent(text)) {
+      // A new cancel message can only be targeted when it replies to the signal.
+      const repliedToId = getReplyToMessageId(message);
+      if (repliedToId) {
+        await publishCancelEvent({
+          chatId,
+          messageId: repliedToId,
+          messageType: type,
+          textHash: hash,
+          messageDate,
+          cancelReason: 'explicit_cancel',
+          triggerMessageId: messageId,
+        });
+      } else {
+        logger.info('cancel_intent_untargeted', { chatId, messageId });
+        await writeSystemLog('info', 'telegram_listener', 'cancel_intent_untargeted', {
+          chatId,
+          messageId,
+        });
+      }
     }
   }
 
@@ -369,25 +423,47 @@ async function logTelegramMessage(
       symbol: parsed.signal.symbol,
       direction: parsed.signal.direction,
     });
-
-    try {
-      await handleParsedSignal({
-        chatId,
-        messageId,
-        messageDate,
-        signal: parsed.signal,
-      });
-    } catch (error) {
-      logger.error('trade_engine_failed', {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      await writeSystemLog('error', 'telegram_listener', 'trade_engine_failed', {
-        chatId,
-        messageId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
   }
+}
+
+async function publishCancelEvent(input: {
+  chatId: string;
+  messageId: string;
+  messageType: 'new' | 'edit';
+  textHash: string;
+  messageDate: Date | null;
+  cancelReason: SignalCancelReason;
+  triggerMessageId?: string;
+}): Promise<void> {
+  const published = await publishSignalEvent({
+    chatId: input.chatId,
+    messageId: input.messageId,
+    messageType: input.messageType,
+    textHash: input.textHash,
+    kind: 'cancel',
+    signal: null,
+    messageDate: input.messageDate,
+    cancelReason: input.cancelReason,
+    triggerMessageId: input.triggerMessageId,
+  });
+  if (!published) {
+    await reportUnpublishedEvent(input.chatId, input.messageId, 'cancel', input.messageType);
+  }
+}
+
+async function reportUnpublishedEvent(
+  chatId: string,
+  messageId: string,
+  kind: 'signal' | 'cancel',
+  messageType: 'new' | 'edit',
+): Promise<void> {
+  logger.error('telegram_signal_event_not_published', { chatId, messageId, kind, messageType });
+  await writeSystemLog('error', 'telegram_listener', 'signal_event_not_published', {
+    chatId,
+    messageId,
+    kind,
+    message_type: messageType,
+  });
 }
 
 async function logRawTelegramUpdate(event: unknown): Promise<void> {
@@ -524,9 +600,22 @@ async function getTelegramChatFilters(): Promise<{ allowedChatIds: string[]; blo
   }
 }
 
-export async function startTelegramListener(): Promise<void> {
-  if (listenerStarted) return;
+export function isTelegramListenerStarted(): boolean {
+  return listenerStarted;
+}
 
+export function startTelegramListener(): Promise<void> {
+  if (listenerStarted) return Promise.resolve();
+  if (!startInFlight) {
+    // Cleared on success and failure alike, so a later call can retry.
+    startInFlight = registerTelegramHandlers().finally(() => {
+      startInFlight = null;
+    });
+  }
+  return startInFlight;
+}
+
+async function registerTelegramHandlers(): Promise<void> {
   const status = await getTelegramStatus();
   if (status.status !== 'authorized') {
     await writeSystemLog('warn', 'telegram_listener', 'listener_not_authorized', {
@@ -557,7 +646,7 @@ export async function startTelegramListener(): Promise<void> {
       const chatId = getChatId(event.message);
       const messageId = getMessageId(event.message);
       logger.info('telegram_message_received', { chatId, messageId, type });
-      await logTelegramMessage(type, event.message, client);
+      await logTelegramMessage(type, event.message);
     } catch (error) {
       logger.error('telegram_listener_error', {
         error: error instanceof Error ? error.message : String(error),
