@@ -1,0 +1,29 @@
+{
+ "channel": "LUCAS",
+ "revisions": 83,
+ "messages": 50,
+ "first_id": 23203,
+ "last_id": 23252,
+ "missing_ids_in_range": 0,
+ "first_date": "2026-10-26T01:44:13.000Z",
+ "last_date": "2026-10-26T17:56:34.000Z",
+ "by_class": {
+  "engagement": 8,
+  "analysis": 1,
+  "analysis_levels": 1,
+  "result_claim": 6,
+  "media_only": 16,
+  "marketing": 2,
+  "signal": 1,
+  "management": 15
+ },
+ "messages_with_edits": 11,
+ "first_seen_as_edit": 1,
+ "edit_lag_s_median": 152.0,
+ "edit_lag_s_max": 1615.0,
+ "observe_delay_s_median": 5.0,
+ "observe_delay_s_p90": 20.4,
+ "with_media": 37,
+ "replies": 17,
+ "forwards": 4
+}

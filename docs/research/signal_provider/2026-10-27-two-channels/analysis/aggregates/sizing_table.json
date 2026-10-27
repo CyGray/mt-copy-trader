@@ -1,0 +1,177 @@
+[
+ {
+  "symbol": "XAUUSD",
+  "case": "Lucas S3 E2 fill 3992.05 / SL 3984",
+  "stop_distance": 8.05,
+  "risk_per_lot_usd": 805.0,
+  "equity_for_min_lot_at_0_25pct": 3220.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": [
+   0.01,
+   8.05
+  ],
+  "5000_hard": [
+   0.01,
+   8.05
+  ],
+  "50000_default": [
+   0.06,
+   48.3
+  ],
+  "50000_hard": [
+   0.15,
+   120.75
+  ]
+ },
+ {
+  "symbol": "XAUUSD",
+  "case": "Lucas S4 E2 fill 4010.95 / SL 4018 (final)",
+  "stop_distance": 7.05,
+  "risk_per_lot_usd": 705.0,
+  "equity_for_min_lot_at_0_25pct": 2820.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": [
+   0.01,
+   7.05
+  ],
+  "5000_hard": [
+   0.01,
+   7.05
+  ],
+  "50000_default": [
+   0.07,
+   49.35
+  ],
+  "50000_hard": [
+   0.17,
+   119.85
+  ]
+ },
+ {
+  "symbol": "XAUUSD",
+  "case": "Lucas S4 first-seen SL 4028",
+  "stop_distance": 17.05,
+  "risk_per_lot_usd": 1705.0,
+  "equity_for_min_lot_at_0_25pct": 6820.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": "volume_below_min",
+  "5000_hard": "volume_below_min",
+  "50000_default": [
+   0.02,
+   34.1
+  ],
+  "50000_hard": [
+   0.07,
+   119.35
+  ]
+ },
+ {
+  "symbol": "XAUUSD",
+  "case": "earlier provider median-like 6 USD",
+  "stop_distance": 6.0,
+  "risk_per_lot_usd": 600.0,
+  "equity_for_min_lot_at_0_25pct": 2400.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": [
+   0.02,
+   12.0
+  ],
+  "5000_hard": [
+   0.02,
+   12.0
+  ],
+  "50000_default": [
+   0.08,
+   48.0
+  ],
+  "50000_hard": [
+   0.2,
+   120.0
+  ]
+ },
+ {
+  "symbol": "EURUSD",
+  "case": "FX example 30 pips",
+  "stop_distance": 0.003,
+  "risk_per_lot_usd": 300.0,
+  "equity_for_min_lot_at_0_25pct": 1200.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": [
+   0.04,
+   12.0
+  ],
+  "5000_hard": [
+   0.04,
+   12.0
+  ],
+  "50000_default": [
+   0.16,
+   48.0
+  ],
+  "50000_hard": [
+   0.41,
+   123.0
+  ]
+ },
+ {
+  "symbol": "GBPUSD",
+  "case": "FX example 40 pips",
+  "stop_distance": 0.004,
+  "risk_per_lot_usd": 400.0,
+  "equity_for_min_lot_at_0_25pct": 1600.0,
+  "1000_default": "volume_below_min",
+  "1000_hard": "volume_below_min",
+  "5000_default": [
+   0.03,
+   12.0
+  ],
+  "5000_hard": [
+   0.03,
+   12.0
+  ],
+  "50000_default": [
+   0.12,
+   48.0
+  ],
+  "50000_hard": [
+   0.31,
+   124.0
+  ]
+ },
+ {
+  "symbol": "USDJPY",
+  "case": "FX example 30 pips",
+  "stop_distance": 0.3,
+  "risk_per_lot_usd": 190.31,
+  "equity_for_min_lot_at_0_25pct": 761.0,
+  "1000_default": [
+   0.01,
+   1.9
+  ],
+  "1000_hard": [
+   0.01,
+   1.9
+  ],
+  "5000_default": [
+   0.06,
+   11.42
+  ],
+  "5000_hard": [
+   0.06,
+   11.42
+  ],
+  "50000_default": [
+   0.26,
+   49.48
+  ],
+  "50000_hard": [
+   0.65,
+   123.7
+  ]
+ }
+]

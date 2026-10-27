@@ -1,0 +1,23 @@
+{
+ "channel": "GABFX",
+ "messages": 28,
+ "class_accuracy": 0.821,
+ "signal_message_precision": null,
+ "signal_message_recall": null,
+ "signals_expected": 0,
+ "signal_levels_tp": 0,
+ "signal_levels_fp": 0,
+ "signal_levels_fn": 0,
+ "revisions_levels_ok": 0,
+ "revisions_levels_bad": 0,
+ "confusion": {
+  "analysis_levels->result_claim": 1,
+  "engagement->marketing": 2,
+  "marketing->marketing": 2,
+  "marketing->result_claim": 2,
+  "media_only->media_only": 15,
+  "result_claim->result_claim": 5,
+  "third_party_promo->third_party_promo": 1
+ },
+ "info_flags": []
+}

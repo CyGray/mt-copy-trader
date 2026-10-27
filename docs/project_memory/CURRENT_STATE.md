@@ -111,6 +111,10 @@ authorization and a confirmed DEMO account).
 - `worker/worker/data/telegram.session.enc` is committed (historical).
 - Six `web/src/app/**/page.old.tsx` files remain (not routed).
 - `node_modules/bybit-api` stays until the v2 rollback window has passed; then `npm ci`.
+- Signal-provider research (read-only, nothing activated): `docs/research/signal_provider/HISTORY.md`. As of
+  2026-10-27, no provider has a demonstrated edge; GAB FX and LUCAS GOLD LEGEND are Unknown for lack of data
+  (`2026-10-27-two-channels/`). Seen there (unverified against this repo's deployment): the live stack is the Go
+  service in `/home/kyle/services/bytrader-go`, whose parser rejects the Lucas "BUY ZONE" signal format.
 
 ## 7. Suggested reading order
 

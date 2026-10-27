@@ -1,0 +1,40 @@
+{
+ "channel": "LUCAS",
+ "messages": 50,
+ "class_accuracy": 0.92,
+ "signal_message_precision": 1.0,
+ "signal_message_recall": 1.0,
+ "signals_expected": 2,
+ "signal_levels_tp": 2,
+ "signal_levels_fp": 0,
+ "signal_levels_fn": 0,
+ "revisions_levels_ok": 2,
+ "revisions_levels_bad": 0,
+ "confusion": {
+  "analysis->analysis": 1,
+  "analysis_levels->analysis_levels": 1,
+  "engagement->analysis": 1,
+  "engagement->engagement": 6,
+  "engagement->marketing": 1,
+  "management->management": 15,
+  "marketing->marketing": 2,
+  "media_only->media_only": 16,
+  "result_claim->analysis": 1,
+  "result_claim->management": 1,
+  "result_claim->result_claim": 4,
+  "signal->signal": 1
+ },
+ "info_flags": [
+  {
+   "message_id": 23218,
+   "truth": "signal",
+   "predicted": "signal",
+   "n_signals": 2,
+   "info": [
+    "symbol_inferred",
+    "open_last_tp",
+    "symbol_inferred"
+   ]
+  }
+ ]
+}

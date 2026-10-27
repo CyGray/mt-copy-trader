@@ -1,0 +1,16 @@
+
+=== lucas_gold_legend.draft.json
+stored 'version' key: false (expected false)
+validateProfile: ok=true
+  errors (0):
+  warnings (0):
+vs DEFAULT_SAFETY_LIMITS (1):
+  - limits.max_spread_price: max_spread_price 1 exceeds safety limit max_spread_price 0.5 | value=1 | limit=0.5
+vs DEFAULT with max_spread_price=1.0 (what-if, memory only) (0):
+vs HARD_CEILINGS + allowed XAUUSD (0):
+effectiveLimits vs DEFAULT: {"maxRiskPercent":1,"maxRiskMoney":50,"maxLots":1,"maxConcurrent":1,"maxPerSymbol":1,"dailyLossLimit":50,"maxTotalRiskPercent":1,"maxSpreadPrice":0.5,"maxDeviationPoints":30,"maxSignalAgeSec":120,"minMarginLevelPercent":200}
+resolveBrokerSymbol('XAUUSD') -> "XAUUSD"
+equity 1000: computeVolume(S3 E2 fill, stop 3984) -> {"ok":false,"reason":"volume_below_min","detail":"volume 0 below min 0.01 (policy skip)"}; planCheckpoints -> null
+equity 5000: computeVolume(S3 E2 fill, stop 3984) -> {"ok":true,"volume":0.01,"riskMoney":8.050000000000182,"riskPercent":0.16100000000000364}; planCheckpoints -> {"ok":false,"reason":"tp_split_infeasible","detail":"TP1 split below volume min 0.01 for total 0.01"}
+equity 7000: computeVolume(S3 E2 fill, stop 3984) -> {"ok":true,"volume":0.02,"riskMoney":16.100000000000364,"riskPercent":0.2300000000000052}; planCheckpoints -> {"ok":true,"checkpoints":[{"tpIndex":1,"price":3998,"closePercent":50,"closeVolume":0.01,"targetRemainingVolume":0.01},{"tpIndex":3,"price":4014,"closePercent":50,"closeVolume":0.01,"targetRemainingVolume":0}],"brokerTp":4014,"warnings":[]}
+equity 50000: computeVolume(S3 E2 fill, stop 3984) -> {"ok":true,"volume":0.06,"riskMoney":48.30000000000109,"riskPercent":0.09660000000000218}; planCheckpoints -> {"ok":true,"checkpoints":[{"tpIndex":1,"price":3998,"closePercent":50,"closeVolume":0.03,"targetRemainingVolume":0.03},{"tpIndex":3,"price":4014,"closePercent":50,"closeVolume":0.03,"targetRemainingVolume":0}],"brokerTp":4014,"warnings":[]}

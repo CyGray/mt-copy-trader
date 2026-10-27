@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "profile_id": "lucas-gold-legend-draft-opstest",
+  "name": "DRAFT - NOT APPROVED - NO EVIDENCE - LUCAS GOLD plan TP1 50%+BE, TP3 50%",
+  "description": "Operations-test TEMPLATE for the LUCAS GOLD LEGEND free channel (-1002371904451). It encodes the provider's own published management plan, not a researched strategy. Profitability is UNKNOWN: only 2 signals (one day, 2026-10-26) were available. Must not be activated without owner review and explicit authorization. Demo only.",
+  "source": {
+    "type": "optimal_report",
+    "report_id": "signal-provider-2026-10-27-two-channels",
+    "report_date": "2026-10-27",
+    "author": "Claude research run (Opus 5.5 orchestrator, Haiku 5.5 xhigh subagents)",
+    "notes": "Rule = the channel's own stated plan (close 1/2 at TP1, move stop to entry, hold the rest); the final 'open' target is not expressible, so the rest closes at TP3. Written after the 2-signal pilot had been seen; it was not chosen among alternatives and has no evidence either way."
+  },
+  "broker": "vantage_mt5",
+  "symbols": [{ "signal_symbol": "XAUUSD", "broker_symbol": "XAUUSD" }],
+  "entry": { "policy": "pending_at_range", "market_tolerance_price": 0.5, "pending_expiry_minutes": 60, "allow_market_fallback": false },
+  "sizing": { "mode": "equity_risk_percent", "risk_percent": 0.25, "below_min_volume": "skip" },
+  "take_profit": {
+    "checkpoints": [{ "tp_index": 1, "close_percent": 50 }, { "tp_index": 3, "close_percent": 50 }],
+    "missing_tp": "merge_into_last_available",
+    "infeasible_split": "skip_trade",
+    "broker_tp": "final_checkpoint"
+  },
+  "stop_loss": {
+    "min_distance_price": 2.0,
+    "max_distance_price": 15.0,
+    "after_checkpoint": [{ "after_tp_index": 1, "move_to": "entry", "buffer_price": 0 }]
+  },
+  "break_even": { "enabled": false, "trigger": "price_distance", "trigger_value": 4.0, "buffer_price": 0 },
+  "trailing": { "enabled": false, "activation": "after_tp_index", "activation_value": 3, "distance_price": 3.0, "step_price": 0.5 },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 1.0,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 50,
+    "max_total_risk_percent": 1
+  },
+  "edits": {
+    "before_fill": "apply_sl_tp",
+    "after_fill": "apply_tighten_only",
+    "unparseable_edit": "cancel_pending_only",
+    "explicit_cancel": "cancel_pending_only"
+  },
+  "recommendations": {
+    "status": "unapproved_draft_no_evidence",
+    "not_executed": "Recommendations are informational and never executed. The profile stays inactive until an operator approves and activates it.",
+    "research_basis": {
+      "candidate": "Provider plan: 50% at TP1 then stop to entry, 50% at TP3 (the channel's 'open' 4th target is not expressible)",
+      "entry_model": "E2 = project pending_at_range (both observed signals were limit-style zones away from the market; E1/E3 market entries filled 0 of 2)",
+      "data": "2 signals from 1 day (2026-10-26), Go forwarder store; Dukascopy XAUUSD ticks; specs read from the Vantage demo bridge on 2026-10-27 (contract 100, tick 0.01 = 1 USD, min/step 0.01).",
+      "reports": "docs/research/signal_provider/2026-10-27-two-channels/"
+    },
+    "evidence_summary": "No evidence. Pilot (descriptive, n=2, E2/MID): one BUY reached TP3 (+2.7R single exit at TP3), one SELL hit its stop (-1.0R). A sample of 2 cannot detect any effect.",
+    "known_gaps": [
+      "The live Go parser does not recognise this channel's 'BUY ZONE / STOPLOSS / TAKE PROFIT a - b - c - open' format: on 2026-10-26 the forwarder classified the signal message as kind 'cancel'. No signal from this channel can reach the executor until the parser supports the format.",
+      "The channel is not a configured source chat (events end 'chat_not_configured'); execution mode is 'disabled'.",
+      "One message carries two signals ('SIGNAL 3', 'SIGNAL 4'); trade-set ids are per message in the executor, so the second signal would collide unless the id includes the signal label.",
+      "Stop edits: the first published stop of SIGNAL 4 (4028) was a typo corrected 27 minutes later (4018), 48 s after price reached the zone. max_distance_price 15.0 would have refused the typo version.",
+      "infeasible_split skip_trade: a 50/50 split needs at least 0.02 lots, i.e. about 6,400 USD equity at 0.25% risk for an 8 USD stop.",
+      "Vantage commission, swap, margin and in-session spread beyond one Asian-session quote (0.29 USD on 2026-10-27T02:25Z) are Unknown."
+    ],
+    "activation_blockers": [
+      "Parser support for the channel's format (code change in the Go forwarder/domain parser, owner-approved).",
+      "At least 160 signals of history evaluated under the pre-registered protocol with a CI entirely above zero; today the verdict is Unknown.",
+      "Owner decision: settings/default.safety.max_spread_price at least 1.0 (default 0.5).",
+      "Owner review and explicit authorization."
+    ],
+    "forward_test_advice": "Do not forward-test for profit. If the owner wants an operations test, use the demo account only, after the parser supports the format.",
+    "validation_note": "Validated in memory with version 1 injected against the TypeScript validators and the live Go domain validator. See profile_validation_output.txt.",
+    "audit_warning": "AUDIT WARNING 2026-10-27: no performance evidence (n=2). The channel is a free marketing funnel for a paid group (LUCAS MASTERMIND); its recaps report best-case floating pips (e.g. +360 pips measured from the zone's best price to the day's high; a SELL that hit its posted stop was reported as '+60 pips' and 'returned to breakeven'). Treat every published result as unverified."
+  }
+}

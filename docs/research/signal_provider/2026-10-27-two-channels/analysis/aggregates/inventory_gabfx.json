@@ -1,0 +1,27 @@
+{
+ "channel": "GABFX",
+ "revisions": 37,
+ "messages": 28,
+ "first_id": 5692,
+ "last_id": 5719,
+ "missing_ids_in_range": 0,
+ "first_date": "2026-10-26T00:05:07.000Z",
+ "last_date": "2026-10-26T23:15:07.000Z",
+ "by_class": {
+  "engagement": 2,
+  "marketing": 4,
+  "media_only": 15,
+  "result_claim": 5,
+  "analysis_levels": 1,
+  "third_party_promo": 1
+ },
+ "messages_with_edits": 6,
+ "first_seen_as_edit": 0,
+ "edit_lag_s_median": 268.0,
+ "edit_lag_s_max": 6200.0,
+ "observe_delay_s_median": 14.4,
+ "observe_delay_s_p90": 24.4,
+ "with_media": 23,
+ "replies": 1,
+ "forwards": 8
+}

@@ -1,0 +1,234 @@
+--- a/analysis/b2/sim_engine_b2.py
++++ b/analysis/b2/sim_engine_b2.py
+@@ -93,16 +93,17 @@
+ 
+ # ---------------------------------------------------------------- tick store
+ class TickStore:
+-    """Hourly XAUUSD ticks from A3's Dukascopy download.
++    """Hourly ticks from A3's Dukascopy download (XAUUSD by default; price_divisor sets the symbol's scale).
+ 
+     raw layout (A3 convention, month is 1-indexed on disk, 0-indexed only in the URL):
+         raw_dir/YYYY/MM/DD/HHh_ticks.bi5   (+ .empty marker for zero-length hours)
+     cache layout: cache_dir/YYYYMMDDHH_<rawbytes>.npy  (structured: ms offset, ask, bid as ints)
+     """
+ 
+-    def __init__(self, raw_dir, cache_dir, mem_hours=24):
++    def __init__(self, raw_dir, cache_dir, mem_hours=24, price_divisor=PRICE_DIVISOR):
+         self.raw_dir = raw_dir
+         self.cache_dir = cache_dir
++        self.price_divisor = float(price_divisor)   # integer price / divisor = price (XAUUSD 1000, EURUSD 100000)
+         os.makedirs(cache_dir, exist_ok=True)
+         self._mem = OrderedDict()
+         self._mem_max = mem_hours
+@@ -147,7 +148,9 @@
+ 
+     def _cache_path(self, hour_ms):
+         t = dt.datetime.fromtimestamp(hour_ms / 1000.0, dt.timezone.utc)
+-        return os.path.join(self.cache_dir, f'{t:%Y%m%d%H}_{self.raw_size(hour_ms)}.npy')
++        # gold (default divisor) keeps the historical name so existing caches stay valid; other scales get a tag
++        tag = '' if self.price_divisor == PRICE_DIVISOR else f'_d{self.price_divisor:g}'
++        return os.path.join(self.cache_dir, f'{t:%Y%m%d%H}_{self.raw_size(hour_ms)}{tag}.npy')
+ 
+     def raw_arrays(self, hour_ms):
+         """Structured cache array for an 'ok' hour (decodes and caches on first use)."""
+@@ -171,7 +174,8 @@
+         else:
+             a = self.raw_arrays(hour_ms)
+             ms = hour_ms + a['ms'].astype(np.int64)
+-            res = (ms, a['bid'].astype(np.float64) / PRICE_DIVISOR, a['ask'].astype(np.float64) / PRICE_DIVISOR)
++            res = (ms, a['bid'].astype(np.float64) / self.price_divisor,
++                   a['ask'].astype(np.float64) / self.price_divisor)
+         self._mem[hour_ms] = res
+         while len(self._mem) > self._mem_max:
+             self._mem.popitem(last=False)
+@@ -467,8 +471,9 @@
+ 
+ # ---------------------------------------------------------------- conventions and strategy
+ class Conventions:
+-    def __init__(self, contract_oz=CONTRACT_OZ, swap_usd_per_lot_per_rollover=0.0, weekend_cutoff_utc=(20, 45)):
+-        self.contract_oz = float(contract_oz)                 # UNVERIFIED (Vantage XAUUSD)
++    def __init__(self, contract_oz=None, swap_usd_per_lot_per_rollover=0.0, weekend_cutoff_utc=(20, 45)):
++        # None = the module CONTRACT_OZ at call time (so configure_symbol() reaches the default)
++        self.contract_oz = float(CONTRACT_OZ if contract_oz is None else contract_oz)  # UNVERIFIED (Vantage XAUUSD)
+         self.swap_usd_per_lot_per_rollover = float(swap_usd_per_lot_per_rollover)  # default 0 = Unknown
+         self.weekend_cutoff_utc = weekend_cutoff_utc          # Friday cut-off for close-before-weekend
+ 
+--- a/analysis/b2/b2_core.py
++++ b/analysis/b2/b2_core.py
+@@ -15,6 +15,9 @@
+ import sim_engine_b2 as se  # noqa: E402
+ import numpy as np  # noqa: E402
+ 
++sys.path.insert(0, os.path.join(os.path.dirname(HERE), 'a3'))
++import symbols as sy  # noqa: E402  per-symbol spec: price divisor, unit, contract, stop bounds
++
+ SCRATCH = os.path.dirname(HERE)
+ B1 = os.path.join(SCRATCH, 'b1')
+ RAW = os.path.join(SCRATCH, 'a3', 'raw')
+@@ -25,7 +28,7 @@
+ MIN_MS = 60_000
+ HOUR_MS = 3_600_000
+ PROJ_MIN_DIST = 2.0      # worker/src/lib/entryPolicy.ts validateStopLoss, OPTIMAL_REPORT_SCHEMA example profile
+-PROJ_MAX_DIST = 25.0
++PROJ_MAX_DIST = 25.0     # XAUUSD values; configure_symbol() sets them from the symbol spec
+ BE_BAND_R = 0.10         # WIN if total_R >= +0.10R, LOSS if <= -0.10R, otherwise BE
+ 
+ # ----------------------------------------------------------------- cost scenarios (latency overrides entry default)
+@@ -90,6 +93,35 @@
+ TRAIL_STEP = 0.5
+ BE_PRICE_USD = 4.0       # fixed-USD proxy for "BE at 1R" (schema-expressible); see REPORT
+ 
++# Per-symbol scaling (pre-registered rule, a3/symbols.py): every USD parameter above is multiplied by the symbol's
++# unit (1.0 gold, 1 pip FX); stop bounds come from min_sl/max_sl; the contract from spec['contract'].
++# _BASE keeps the gold originals so configure_symbol() re-derives the live values from them every time.
++_BASE = dict(COSTS={k: dict(v) for k, v in COSTS.items()}, TOL={k: v['tol'] for k, v in ENTRIES.items()},
++             TRAIL_DISTS=TRAIL_DISTS, TRAIL_STEP=TRAIL_STEP, BE_PRICE_USD=BE_PRICE_USD)
++SYMBOL = 'XAUUSD'
++UNIT = 1.0               # price units per study "USD": 1.0 for gold, 1 pip for FX (variant labels are in these units)
++OUT_DP = 4               # decimals written for fill_px and R_usd in output rows (gold 4, finer for FX)
++
++
++def configure_symbol(symbol):
++    """Set every USD-denominated parameter for one symbol. Returns the spec; the caller must pass
++    spec['price_divisor'] to TickStore. configure_symbol('XAUUSD') leaves every value as the gold study had it."""
++    global SYMBOL, UNIT, OUT_DP, PROJ_MIN_DIST, PROJ_MAX_DIST, TRAIL_DISTS, TRAIL_STEP, BE_PRICE_USD
++    sp = sy.spec(symbol)
++    u = sp['unit']
++    SYMBOL, UNIT = sp['symbol'], u
++    OUT_DP = 4 - int(round(math.log10(u)))
++    PROJ_MIN_DIST, PROJ_MAX_DIST = sp['min_sl'], sp['max_sl']
++    TRAIL_DISTS = tuple(d * u for d in _BASE['TRAIL_DISTS'])
++    TRAIL_STEP = _BASE['TRAIL_STEP'] * u
++    BE_PRICE_USD = _BASE['BE_PRICE_USD'] * u
++    for cn, b in _BASE['COSTS'].items():
++        COSTS[cn] = dict(b, spread=b['spread'] * u, slip=b['slip'] * u)
++    for en, t in _BASE['TOL'].items():
++        ENTRIES[en] = dict(ENTRIES[en], tol=t * u)
++    se.CONTRACT_OZ = float(sp['contract'])
++    return sp
++
+ 
+ def mgmt_options(ks, runner_ks=None):
+     """Management options applicable to a checkpoint set ks (sorted tp indices). Returns list of (code, spec)."""
+@@ -98,17 +130,17 @@
+     rem_after = lambda k: any(x > k for x in ks)  # noqa: E731  (open position remains after TP k)
+     if 1 in ks and rem_after(1):
+         opts.append(('M1', dict(sl_after=((1, 'entry', 0.0),))))
+-        opts.append(('M2', dict(sl_after=((1, 'entry', 0.3),))))
++        opts.append(('M2', dict(sl_after=((1, 'entry', 0.3 * UNIT),))))   # 0.3 USD buffer (gold), scaled per symbol
+     if 2 in ks and rem_after(2):
+         opts.append(('M3', dict(sl_after=((2, 'entry', 0.0),))))
+         opts.append(('M4', dict(sl_after=((2, 'previous_tp', 0.0),))))
+     opts.append(('M5', dict(break_even=('price', BE_PRICE_USD, 0.0))))
+     if 1 in ks and rem_after(1):
+         for d in TRAIL_DISTS:
+-            opts.append((f'T1_{d:g}', dict(trailing=(('after_tp', 1), d, TRAIL_STEP))))
++            opts.append((f'T1_{d / UNIT:g}', dict(trailing=(('after_tp', 1), d, TRAIL_STEP))))
+     if 2 in ks and rem_after(2):
+         for d in TRAIL_DISTS:
+-            opts.append((f'T2_{d:g}', dict(trailing=(('after_tp', 2), d, TRAIL_STEP))))
++            opts.append((f'T2_{d / UNIT:g}', dict(trailing=(('after_tp', 2), d, TRAIL_STEP))))
+     return opts
+ 
+ 
+@@ -135,7 +167,7 @@
+                               kw=kw, missing_tp='merge_into_last_available'))
+     # runners (NOT schema-expressible: research only). Runner = r% of initial volume with no TP cap.
+     # Per runner share: no-trailing (SL stays at BE after TP1 and at previous TP after TP2/TP3) or trailing
+-    # activated after TP1 or TP2 with distance in TRAIL_DISTS (USD, step 0.5).
++    # activated after TP1 or TP2 with distance in TRAIL_DISTS (USD for gold, pips for FX; step 0.5 units).
+     for r in (10.0, 20.0, 30.0, 40.0):
+         for rn, rcps in (('RUN2', ((1, (100 - r) / 2), (2, (100 - r) / 2))),
+                          ('RUN3', ((1, (100 - r) / 3), (2, (100 - r) / 3), (3, (100 - r) / 3)))):
+@@ -144,18 +176,21 @@
+             V.append(dict(alloc=f'{rn}_r{r:g}', mgmt='RUN_NOTRAIL', family='runner', cps=rcps, runner=r,
+                           close_all_at=None, kw=dict(sl_after=nt_sl), missing_tp='merge_into_last_available'))
+             for d in TRAIL_DISTS:
+-                V.append(dict(alloc=f'{rn}_r{r:g}', mgmt=f'RUN_T1_{d:g}', family='runner', cps=rcps, runner=r,
++                V.append(dict(alloc=f'{rn}_r{r:g}', mgmt=f'RUN_T1_{d / UNIT:g}', family='runner', cps=rcps, runner=r,
+                               close_all_at=None, kw=dict(trailing=(('after_tp', 1), d, TRAIL_STEP)),
+                               missing_tp='merge_into_last_available'))
+-                V.append(dict(alloc=f'{rn}_r{r:g}', mgmt=f'RUN_T2_{d:g}', family='runner', cps=rcps, runner=r,
++                V.append(dict(alloc=f'{rn}_r{r:g}', mgmt=f'RUN_T2_{d / UNIT:g}', family='runner', cps=rcps, runner=r,
+                               close_all_at=None, kw=dict(trailing=(('after_tp', 2), d, TRAIL_STEP)),
+                               missing_tp='merge_into_last_available'))
+     for v in V:
+         v['name'] = f"{v['alloc']}|{v['mgmt']}"
++        v['unit'] = UNIT                  # kwargs hold prices in this unit; make_strategy refuses a mismatch
+     return V
+ 
+ 
+ def make_strategy(v, units='fraction', total_lots=0.10):
++    if v.get('unit', UNIT) != UNIT:
++        raise ValueError(f"variant {v['name']} was built with unit {v['unit']}, configured unit is {UNIT}")
+     kw = dict(v['kw'])
+     return se.Strategy(v['name'], checkpoints=v['cps'], runner_pct=v['runner'], close_all_at=v['close_all_at'],
+                        missing_tp=v['missing_tp'], units=units, total_lots=total_lots,
+@@ -210,10 +245,11 @@
+             if status == 'FILLED' and ecfg['nominal_guard'] and R > ecfg['nominal_guard'] * base['nominal_R']:
+                 status, reason = 'SKIPPED_risk_gt_guard_x_nominal', 'risk_gt_1.5x_nominal'
+             fill_rows.append(dict(base, status=status, reason=reason, fill_ms=fill.fill_ms,
+-                                  fill_px=round(fill.fill_px, 4), R_usd=round(R, 4), kind=fill.kind))
++                                  fill_px=round(fill.fill_px, OUT_DP), R_usd=round(R, OUT_DP), kind=fill.kind))
+             if status != 'FILLED':
+                 continue
+-            tbase = dict(base, fill_ms=fill.fill_ms, fill_px=round(fill.fill_px, 4), R_usd=round(R, 4), kind=fill.kind)
++            tbase = dict(base, fill_ms=fill.fill_ms, fill_px=round(fill.fill_px, OUT_DP), R_usd=round(R, OUT_DP),
++                         kind=fill.kind)
+             for v in variants:
+                 res = se.simulate(sig, fill, v['strategy'], mk, conv=conv, slip=c['slip'])
+                 trade_rows.append(trade_row(tbase, v, res, fill, c, mk))
+--- a/analysis/oos2/oos2_eval.py
++++ b/analysis/oos2/oos2_eval.py
+@@ -1,14 +1,33 @@
+-"""Evaluate the FROZEN finalists on an OOS2 universe. usage: oos2_eval.py UNIVERSE_CSV OUT_PREFIX [--all]
+-No tuning. Clean signals only unless --all. Output: <prefix>_trades.csv, <prefix>_summary.json."""
+-import csv, json, os, sys, random, math, collections
+-B2 = '/tmp/claude-1001/-home-kyle-projects-ByTrader/49765c97-aa3e-4f05-97ec-79e2b692b108/scratchpad/b2'
++"""Evaluate the FROZEN finalists on an OOS2 universe. No tuning. Clean signals only unless --all.
++usage: oos2_eval.py UNIVERSE_CSV OUT_PREFIX [--all] [--symbol SYM] [--raw DIR] [--b2 DIR]
++  --symbol  XAUUSD (default, the study) or any symbol in a3/symbols.py (USD parameters scaled, see b2_core)
++  --raw     Dukascopy bi5 tree (default: b2_core.RAW, i.e. <study>/a3/raw)
++  --b2      directory holding b2_core.py and out/finalists.json (default: ../b2 next to this script)
++Output: <prefix>_trades.csv, <prefix>_fills.csv, <prefix>_summary.json. Cache: cache_oos2 next to the prefix
++(gold) or cache_oos2_<SYMBOL> (other symbols)."""
++import argparse, csv, json, os, sys, random, math, collections
++HERE = os.path.dirname(os.path.abspath(__file__))
++ap = argparse.ArgumentParser()
++ap.add_argument('universe')
++ap.add_argument('prefix')
++ap.add_argument('--all', action='store_true')
++ap.add_argument('--symbol', default='XAUUSD')
++ap.add_argument('--raw', default=None)
++ap.add_argument('--b2', default=os.path.join(os.path.dirname(HERE), 'b2'))
++args = ap.parse_args()
++B2 = args.b2
+ sys.path.insert(0, B2)
+ import b2_core as c
+ import sim_engine_b2 as se
+ import numpy as np
+ 
+-uni, prefix = sys.argv[1], sys.argv[2]
++uni, prefix = args.universe, args.prefix
+ c.UNIVERSE = uni
++sp = c.configure_symbol(args.symbol)     # XAUUSD: every value unchanged; other symbols: pip-scaled USD parameters
++if args.raw:
++    c.RAW = args.raw
++print(f"symbol={sp['symbol']} price_divisor={sp['price_divisor']:g} unit={sp['unit']:g} contract={sp['contract']:g} "
++      f"raw={c.RAW} b2={B2}")
+ fin = json.load(open(os.path.join(B2, 'out', 'finalists.json')))
+ names = [d['variant'] for d in fin['finalists']] + [fin['benchmark']]
+ V = [v for v in c.build_grid() if v['name'] in names]
+@@ -21,8 +40,10 @@
+     s.meta['split'] = 'oos2'
+     s.meta['edit_delay_s'] = float(extra[s.message_id]['edit_delay_s'] or 0)
+     s.meta['levels_changed'] = int(extra[s.message_id]['levels_changed'])
+-use = [s for s in sigs if s.meta['in_clean'] == 1 or '--all' in sys.argv]
+-store = se.TickStore(c.RAW, os.path.join(os.path.dirname(prefix), 'cache_oos2'), mem_hours=64)
++use = [s for s in sigs if s.meta['in_clean'] == 1 or args.all]
++cache = 'cache_oos2' if sp['symbol'] == 'XAUUSD' else f"cache_oos2_{sp['symbol']}"
++store = se.TickStore(c.RAW, os.path.join(os.path.dirname(prefix), cache), mem_hours=64,
++                     price_divisor=sp['price_divisor'])
+ fills, trades = [], []
+ for s in use:
+     fr, tr = c.evaluate_signal(store, s, V)

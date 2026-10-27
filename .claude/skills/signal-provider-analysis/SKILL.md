@@ -17,8 +17,10 @@ AutoTrader, `npm run build` / `npm ci` / `npm prune` (production `worker/dist` a
 `.env*`, activating a profile, changing the kill switch / execution mode / Firestore trading settings, sending
 Telegram messages, committing secrets or raw message text.
 
-- **Never open a second Telegram session.** The forwarder owns the only one. Live evidence comes from Firestore
-  `telegram_messages` (read) and `journalctl --user -u bytrader-worker` (ids, new/edit, timestamps; no text).
+- **Never open a second Telegram session.** The forwarder owns the only one. Live evidence comes from the Go
+  forwarder's SQLite store (since 2026-10-25; read with `mode=ro` via `a1/export_go_store.py` of the 2026-10-27
+  study), older data from Firestore `telegram_messages` (read) and `journalctl --user -u bytrader-worker`
+  (ids, new/edit, timestamps; no text).
 - **Never print credentials** from `.env*`, MT5 config or session files. Mask the broker login in outputs.
 - **Firestore budget.** The project is on the free plan and the AutoTrader's polling can exhaust the daily quota;
   an exhausted quota stops real trading. Agree a hard read cap with the owner, route every read through
@@ -36,6 +38,7 @@ Telegram messages, committing secrets or raw message text.
 | "Is it profitable / what settings?" with no new data | Read `HISTORY.md` and `OPTIMAL_REPORT.md`, answer from them, and say what is stale. Do not rerun anything. |
 | New signals exist since the last test | **Refresh runbook** (`references/refresh-runbook.md`): about 500 Firestore reads, 30 minutes of compute. |
 | New provider, new symbol or a changed engine | **Full study**, phases 1 to 9 below. |
+| New channel, unknown format or instrument | First the data ladder and message classification of the 2026-10-27 study (`docs/research/signal_provider/2026-10-27-two-channels/analysis/README.md`): it may have no signals or no history. Pre-register before reading text. |
 | Turn a result into a profile | Phase 9, then `docs/project_memory/OPTIMAL_REPORT_SCHEMA.md`. |
 
 ## Full study (phases)

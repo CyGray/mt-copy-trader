@@ -1,0 +1,103 @@
+{
+ "tick_count": 233346,
+ "known_until": "2026-10-27 02:00:00.000",
+ "sorted_violations": 0,
+ "hour_status": {
+  "2026-10-26 21": "empty"
+ },
+ "n_revisions": 2,
+ "final_edit_date": "2026-10-26T14:20:03.000Z",
+ "first_revision_timestamp": "2026-10-26T13:53:12.062Z",
+ "edit_delay_s": 1615.0,
+ "first_obs_lag_s": 4.1,
+ "levels_changed_first_vs_final": {
+  "3": 0,
+  "4": 1
+ },
+ "counts": {
+  "universe_final": {
+   "rows_compared": 31,
+   "mismatches": 0
+  },
+  "universe_first": {
+   "rows_compared": 31,
+   "mismatches": 0
+  },
+  "fills_final": {
+   "rows_compared": 145,
+   "mismatches": 0
+  },
+  "fills_first": {
+   "rows_compared": 145,
+   "mismatches": 0
+  },
+  "trades_final": {
+   "rows_compared": 546,
+   "mismatches": 0
+  },
+  "trades_first": {
+   "rows_compared": 546,
+   "mismatches": 0
+  },
+  "trades_posthoc": {
+   "rows_compared": 624,
+   "mismatches": 0
+  },
+  "summary_final": {
+   "rows_compared": 469,
+   "mismatches": 0
+  },
+  "summary_first": {
+   "rows_compared": 469,
+   "mismatches": 0
+  }
+ },
+ "touch_facts": {
+  "3": {
+   "known_until_h": 12.114444444444445,
+   "n_ticks": 103290,
+   "min_bid_6h": 3988.535,
+   "max_ask_6h": 4030.125,
+   "entry_zone_min": 0.7954333333333333,
+   "stop_min": null,
+   "tp1_min": 11.520533333333333,
+   "tp2_min": 20.308183333333332,
+   "tp3_min": 26.61485
+  },
+  "4": {
+   "known_until_h": 12.114444444444445,
+   "n_ticks": 103290,
+   "min_bid_6h": 3988.535,
+   "max_ask_6h": 4030.125,
+   "entry_zone_min": 26.1323,
+   "stop_min": 45.04055,
+   "tp1_min": 0.004,
+   "tp2_min": 0.004,
+   "tp3_min": 4.9086
+  }
+ },
+ "first_touch_facts": {
+  "3": {
+   "known_until_h": 12.11331611111111,
+   "n_ticks": 103265,
+   "min_bid_6h": 3988.535,
+   "max_ask_6h": 4030.125,
+   "entry_zone_min": 0.7277333333333333,
+   "stop_min": null,
+   "tp1_min": 11.452833333333333,
+   "tp2_min": 20.240483333333334,
+   "tp3_min": 26.54715
+  },
+  "4": {
+   "known_until_h": 12.11331611111111,
+   "n_ticks": 103265,
+   "min_bid_6h": 3988.535,
+   "max_ask_6h": 4030.125,
+   "entry_zone_min": 26.0646,
+   "stop_min": 199.73425,
+   "tp1_min": 0.00675,
+   "tp2_min": 0.00675,
+   "tp3_min": 4.8409
+  }
+ }
+}

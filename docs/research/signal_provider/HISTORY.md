@@ -1,13 +1,28 @@
 # Signal-provider research: history
 
-Research record for the XAUUSD Telegram signal provider (channel `-1003271337051`). Newest conclusion first,
-then how we got there. Detailed evidence lives in `2026-10-21/`; the repeatable procedure is the skill
-`.claude/skills/signal-provider-analysis/SKILL.md`.
+Research record for the Telegram signal providers studied so far: the XAUUSD provider (channel `-1003271337051`,
+evidence in `2026-10-21/`) and, from 2026-10-27, GAB FX (`-1003740937489`) and LUCAS GOLD LEGEND
+(`-1002371904451`, evidence in `2026-10-27-two-channels/`). Newest conclusion first, then how we got there. The
+repeatable procedure is the skill `.claude/skills/signal-provider-analysis/SKILL.md`.
 
 Nothing here was approved or activated. No broker order, close, restart, deploy, Firestore write, Telegram send,
 `.env` change or profile activation took place in any of these studies.
 
-## 1. Current conclusion (2026-10-26)
+## 0. Two more channels (2026-10-27): no data yet
+
+| Channel | Data available | Verdict | Label |
+|---|---|---|---|
+| GAB FX `-1003740937489` | 28 messages, 1 day; **0 entry signals** (signals are sold in a paid "circle"; the channel has profit claims and a forwarded crypto-bot offer) | Unknown, no data. Nothing to trade; do not pay for the circle on this evidence | Verified (contents), Inferred (funnel) |
+| LUCAS GOLD LEGEND `-1002371904451` (the provider's free channel) | 50 messages, 1 day, **2 gold signals** | Unknown, insufficient data. Pilot n = 2 (one TP3 win, one stop) proves the pipeline only | Modeled |
+
+- Neither channel trades forex. Both quote gold, and both call 0.10 USD a "pip".
+- History before 2026-10-26 does not exist in any store the research may read (Firestore, journals,
+  exports, public previews). The Go forwarder now records every revision of both. A Telegram Desktop export of
+  the Lucas channel (`OWNER_ACTION.md`) is the fast path to 160 signals.
+- The live Go parser does not read the Lucas zone format, and the executor ignores both chats (not source chats).
+- Holm across the three providers: none has a CI above zero, so nothing survives.
+
+## 1. XAUUSD provider `-1003271337051`: current conclusion (2026-10-26)
 
 **No stable, tradable edge has been shown. Do not trade this provider with real money.**
 
@@ -40,6 +55,7 @@ after 2026-10-22; Vantage commission, margin and in-hours spread.
 | 2026-10-24 | OOS2: pre-registration written before any message text of the period was read (sha256 `073151fa...6702`), then the test | `PREREGISTRATION_OOS2.md`, `OOS2_AND_LIVE_CROSSCHECK.md` |
 | 2026-10-25 | Not research: the AutoTrader was stopped cleanly at 14:02Z and the forwarder stopped at 14:09Z on Telegram `401 AUTH_KEY_UNREGISTERED` (session invalidated). No new signals are received until the owner re-authorises the Telegram session | forwarder journal |
 | 2026-10-26 | Plain-language synthesis for the owner; this history and the skill written | this file, the skill |
+| 2026-10-27 | Two-channel study (GAB FX, LUCAS GOLD LEGEND): data ladder (Go SQLite store, Firestore count, journals, public previews), pre-registration, new parser for the zone / multi-signal format, symbol-generalised engine (FX), pilot, read-only Vantage specs, independent audit, OWNER_ACTION | `2026-10-27-two-channels/` |
 
 ## 3. Decisions that shaped the result
 
@@ -81,6 +97,13 @@ after 2026-10-22; Vantage commission, margin and in-hours spread.
 - The engine's signal-age gate uses the original `messageDate` (default `max_signal_age_sec` 120).
 - Default `max_spread_price` is 0.5; three of four draft profiles need at least 1.0 to pass default safety.
 - Firestore: free (Spark) plan, about 50k reads and 20k writes a day, reset at Pacific midnight (07:00Z until 2026-11-01).
+- **Since 2026-10-25 the live stack is Go** (`bytrader-go-forwarder`, `-executor`, `-web`; state in
+  `/home/kyle/services/bytrader-go/state/state.sqlite`, read it only with `mode=ro`). It does not use Firestore,
+  so research reads no longer compete with live trading (Inferred from the Go source, 2026-10-27). The Go forwarder
+  records every chat not blocked (`telegram.allowed_chat_ids` empty), so a new channel's history starts when the
+  account joins it.
+- Vantage demo, 2026-10-27T02:25Z (Asian session, market open): XAUUSD spread 0.29 USD; EURUSD 1.4, GBPUSD 1.5,
+  USDJPY 1.7 pips; FX contract 100,000, min/step 0.01; USDJPY tick value about 0.634 USD per point.
 
 ## 6. What would change the conclusion
 

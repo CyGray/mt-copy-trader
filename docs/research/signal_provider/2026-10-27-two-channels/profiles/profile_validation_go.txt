@@ -1,0 +1,11 @@
+StripProfileEnvelope: recommendations present before=true after=true
+ValidateProfile[as stored (+version)]: ok=true errors=0 warnings=0
+  ValidateProfileAgainstSafety vs DefaultSafetyLimits: 1 issue(s)
+    - limits.max_spread_price: max_spread_price 1 exceeds safety limit max_spread_price 0.5
+  ValidateProfileAgainstSafety vs Default with max_spread_price=1.0: 0 issue(s)
+  ResolveBrokerSymbol(XAUUSD) -> "XAUUSD" ok=true
+ValidateProfile[envelope stripped (+version)]: ok=true errors=0 warnings=0
+  ValidateProfileAgainstSafety vs DefaultSafetyLimits: 1 issue(s)
+    - limits.max_spread_price: max_spread_price 1 exceeds safety limit max_spread_price 0.5
+  ValidateProfileAgainstSafety vs Default with max_spread_price=1.0: 0 issue(s)
+  ResolveBrokerSymbol(XAUUSD) -> "XAUUSD" ok=true

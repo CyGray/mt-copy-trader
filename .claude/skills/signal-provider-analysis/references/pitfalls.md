@@ -63,3 +63,36 @@ Each item cost real time or nearly produced a wrong conclusion. Check them befor
 - Scratchpad directories are ephemeral; heavy data must be regenerated from scripts.
 - A second agent (hub session `auto-trader`) may be changing the live system. Re-read state instead of trusting
   an earlier snapshot, and never undo its work.
+
+## New channels (learned 2026-10-27, GAB FX and LUCAS GOLD LEGEND)
+
+- **Check that a channel posts signals at all before planning a study.** GAB FX posted 0 entry signals ("signals
+  only inside circle"): a free channel can be a sales funnel. Classify every message first (`a1/parser_multi.py`
+  `classify_message`, checked against hand labels).
+- **The name says nothing about the instrument.** "GAB FX" and the Lucas channel both quote gold and call 0.10 USD
+  a "pip". Infer the symbol from the price level and flag `symbol_inferred`.
+- **Several signals per message** ("SIGNAL 3" BUY and "SIGNAL 4" SELL together). Universe ids are
+  `message_id * 100 + label`. The live executor's trade-set id is per message, so a second signal would collide.
+- **"open" as the last target** means a runner with no price. S_TP4 strategies then skip (`tp_missing`).
+- **Zone signals are limit-style.** Both Lucas signals were posted 3-20 USD away from the market: E1/E3 fill 0%,
+  only E2 (`pending_at_range`) fills.
+- **Pips annotations catch typos.** "STOPLOSS: 4018 (50pips - 70pips)" lets the parser check the stop
+  (`sl_annotation_mismatch`). The first published 4028 failed the check and was corrected 27 min later.
+- **Marketing recaps quote best cases.** The channel's "+360 pips" ran from the zone's best price to the
+  day's top tick; a SELL that hit its stop was posted as "+60 pips" and "returned to breakeven". Never use
+  provider claims as outcomes; check them against ticks.
+- **A public `t.me/s/<handle>` with the same title can be a different channel** (different ids, bulk-posted
+  media). A mirror counts only if message ids and text match the private store.
+- **History starts when the account joins.** No store holds earlier messages. The fast path is a Telegram
+  Desktop JSON export by the owner (`a1/load_tdesktop_export.py`). It holds final text only: edit history is
+  Unknown and `date` is local time, so use `date_unixtime`.
+- **Live stack is Go since 2026-10-25.** Read `state.sqlite` with `mode=ro` (`a1/export_go_store.py`). The
+  live Go parser (`internal/domain/parser.go`, `ParseGoldSignal`) is a separate implementation: test new formats
+  against it too, and validate draft profiles against a copy of the Go `domain` package as well as the
+  TypeScript validators (`profiles/` in the 2026-10-27 study).
+- **Never run another session's Telegram tool.** A hub session built a `dialogsreader` that opens the stored
+  session; a second client can invalidate the forwarder's session.
+- **Bridge `tick_time_msc` is broker server time, not UTC.** Vantage MT5 server time was GMT+3 on 2026-10-27
+  (`PING`: `server_time - gmt_time = 10800`). Subtract the offset before comparing with Dukascopy or Telegram times.
+- **Next pre-registration: make `sl_annotation_mismatch` a hard flag** (audit F2, 2026-10-27). It was info-only
+  in the first two-channel study because the hard-flag list had been pre-registered unchanged.
