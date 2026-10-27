@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "profile_id": "xauusd-provider-draft-aggressive",
+  "name": "DRAFT - NOT APPROVED - EXPERIMENTAL - XAUUSD provider S_TP4 M0 E2 1pct",
+  "description": "Aggressive experimental ALTERNATE from the 2026-10-21 signal-provider research: single exit at TP4, no break-even, original stop, 1.0% risk. Stays within DEFAULT safety limits, including a 0.5 spread gate that the research did not test. UNAPPROVED research draft with NO demonstrated positive expectancy (OOS E2 mean +0.21R, 95% CI spans zero). Must not be activated without owner review and explicit authorization. Demo or paper use only. See recommendations.audit_warning: edit-timing audit found no edge on text-stable signals.",
+  "source": {
+    "type": "optimal_report",
+    "report_id": "signal-provider-2026-10-21",
+    "report_date": "2026-10-21",
+    "author": "Claude research run (Haiku 5.5 xhigh subagents, coordinated)",
+    "notes": "Research variant S_TP4|M0 under entry model E2 (project pending_at_range). Simulated on Dukascopy XAUUSD ticks, MID cost scenario, clean signals. Broker symbol and account specs unverified."
+  },
+  "broker": "vantage_mt5",
+  "symbols": [
+    {
+      "signal_symbol": "XAUUSD",
+      "broker_symbol": "UNVERIFIED-XAUUSD"
+    }
+  ],
+  "entry": {
+    "policy": "pending_at_range",
+    "market_tolerance_price": 0.5,
+    "pending_expiry_minutes": 60,
+    "allow_market_fallback": false
+  },
+  "sizing": {
+    "mode": "equity_risk_percent",
+    "risk_percent": 1.0,
+    "below_min_volume": "skip"
+  },
+  "take_profit": {
+    "checkpoints": [
+      {
+        "tp_index": 4,
+        "close_percent": 100
+      }
+    ],
+    "missing_tp": "skip_trade",
+    "infeasible_split": "skip_trade",
+    "broker_tp": "final_checkpoint"
+  },
+  "stop_loss": {
+    "min_distance_price": 2.0,
+    "max_distance_price": 15.0,
+    "after_checkpoint": []
+  },
+  "break_even": {
+    "enabled": false,
+    "trigger": "price_distance",
+    "trigger_value": 4.0,
+    "buffer_price": 0
+  },
+  "trailing": {
+    "enabled": false,
+    "activation": "after_tp_index",
+    "activation_value": 4,
+    "distance_price": 3.0,
+    "step_price": 0.5
+  },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 0.5,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 50,
+    "max_total_risk_percent": 1
+  },
+  "edits": {
+    "before_fill": "apply_sl_tp",
+    "after_fill": "apply_tighten_only",
+    "unparseable_edit": "cancel_pending_only",
+    "explicit_cancel": "cancel_pending_only"
+  },
+  "recommendations": {
+    "status": "unapproved_draft_experimental",
+    "not_executed": "Recommendations are informational and never executed.",
+    "research_basis": {
+      "variant": "S_TP4|M0: 100% close at TP4, original SL (M0), no break-even",
+      "entry_model": "E2 = project pending_at_range",
+      "result_OOS_E2": "n=68, mean +0.21R, 95% CI [-0.47, +0.99], PF 1.24, closed max DD 22.6R, block-bootstrap p95 DD 45.5R, drop-top-5 mean -0.47R",
+      "in_sample_E2": "TRAIN+VAL n=233, mean +0.20R",
+      "reports": "docs/research/signal_provider/2026-10-21/STRATEGY_COMPARISON.md, SIGNAL_PERFORMANCE_REPORT.md (section 7 sizing)"
+    },
+    "sizing_note": "1.0% risk is the default safety per-trade ceiling, and the default money cap (50 USD) binds above 5,000 USD equity. Research B3 gives a bootstrap p99 max DD of 24.3% at 5,000 USD for the 1% policy, on strict-entry trades (n=67), not on the E2 set.",
+    "approximation": "The research applied no spread gate (as far as the files read show), so a 0.5 gate is a new filter that the research results do not cover. Median spread at signal message times is 0.63 USD (SIGNAL_DATA_AUDIT.md), so this gate would refuse most signals. The OOS result therefore does not describe this profile's trade set. The 0.5 value is chosen only so the profile stays within default safety.",
+    "known_gaps": [
+      "Same unresolved items as the conservative draft: broker symbol placeholder, unverified account and contract specs, untested edits, undefined MID cost, and the concurrency skip (max_concurrent_positions 1).",
+      "The 0.5 spread gate is the main reason this alternate differs from the research variant. It is set only to stay within default safety."
+    ],
+    "activation_blockers": [
+      "Set symbols[0].broker_symbol to the exact Market Watch name.",
+      "Verify equity, leverage and contract specs. The 1% policy needs the owner's accepted drawdown tolerance (research p99 DD 24.3% at 5,000 USD).",
+      "Owner review and explicit authorization to approve and activate."
+    ],
+    "forward_test_advice": "Demo or paper only, with owner authorization. Highest variance of the four drafts. Its OOS drawdown (closed 22.6R, block p95 45.5R) is the deepest of the set. Not recommended as a first forward test.",
+    "audit_warning": "AUDIT WARNING (independent audit, exploratory, 2026-10): the positive OOS mean of this research family comes entirely from signals whose text was edited MORE than 5 minutes after posting (about 25% of signals; 80% of them already had TP1 touched before the edit). Among signals whose text was stable within 5 minutes (about 75%), modeled mean R is NEGATIVE for every tested exit (MID costs, E2: 100% TP1 -0.31R n=283; S_TP4|M0 -0.22R n=225; S_TP4|M5 -0.25R n=225). Original pre-edit levels are unrecoverable, so late edits may embed hindsight. Treat this profile as having NO demonstrated edge; it exists only as a documented, fail-closed research artifact. UPDATE 2026-10-24: a second out-of-sample test (58 signals, 2026-09-24..2026-10-22) gave -0.66R for this exact candidate (E2, MID costs, n=53, CI [-0.79,-0.52]); the earlier +0.20R did not replicate. Use only for an operations test on the demo account, with no profit expectation. See OOS2_AND_LIVE_CROSSCHECK.md."
+  }
+}

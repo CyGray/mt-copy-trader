@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "profile_id": "xauusd-provider-benchmark-tp1-reference",
+  "name": "DRAFT - NOT APPROVED - EXPERIMENTAL - REFERENCE TP1 M0 E2 benchmark",
+  "description": "REFERENCE ONLY. 100% close at TP1, original stop, no break-even, 0.25% risk. This is the research benchmark, not a candidate. Its OOS E2 mean is negative (-0.10R, 95% CI [-0.33, +0.13]). Do not activate or forward-test as a strategy. Kept only to compare against the candidates. See recommendations.audit_warning: edit-timing audit found no edge on text-stable signals.",
+  "source": {
+    "type": "optimal_report",
+    "report_id": "signal-provider-2026-10-21",
+    "report_date": "2026-10-21",
+    "author": "Claude research run (Haiku 5.5 xhigh subagents, coordinated)",
+    "notes": "Research benchmark S_TP1|M0 under entry model E2 (project pending_at_range). Simulated on Dukascopy XAUUSD ticks, MID cost scenario, clean signals. Broker symbol and account specs unverified."
+  },
+  "broker": "vantage_mt5",
+  "symbols": [
+    {
+      "signal_symbol": "XAUUSD",
+      "broker_symbol": "UNVERIFIED-XAUUSD"
+    }
+  ],
+  "entry": {
+    "policy": "pending_at_range",
+    "market_tolerance_price": 0.5,
+    "pending_expiry_minutes": 60,
+    "allow_market_fallback": false
+  },
+  "sizing": {
+    "mode": "equity_risk_percent",
+    "risk_percent": 0.25,
+    "below_min_volume": "skip"
+  },
+  "take_profit": {
+    "checkpoints": [
+      {
+        "tp_index": 1,
+        "close_percent": 100
+      }
+    ],
+    "missing_tp": "skip_trade",
+    "infeasible_split": "skip_trade",
+    "broker_tp": "final_checkpoint"
+  },
+  "stop_loss": {
+    "min_distance_price": 2.0,
+    "max_distance_price": 15.0,
+    "after_checkpoint": []
+  },
+  "break_even": {
+    "enabled": false,
+    "trigger": "price_distance",
+    "trigger_value": 4.0,
+    "buffer_price": 0
+  },
+  "trailing": {
+    "enabled": false,
+    "activation": "after_tp_index",
+    "activation_value": 1,
+    "distance_price": 3.0,
+    "step_price": 0.5
+  },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 1.0,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 50,
+    "max_total_risk_percent": 1
+  },
+  "edits": {
+    "before_fill": "apply_sl_tp",
+    "after_fill": "apply_tighten_only",
+    "unparseable_edit": "cancel_pending_only",
+    "explicit_cancel": "cancel_pending_only"
+  },
+  "recommendations": {
+    "status": "reference_only_negative_oos",
+    "not_executed": "Recommendations are informational and never executed.",
+    "research_basis": {
+      "variant": "S_TP1|M0: 100% close at TP1, original SL, no break-even",
+      "entry_model": "E2 = project pending_at_range",
+      "result_OOS_E2": "n=73, mean -0.10R, 95% CI [-0.33, +0.13], PF 0.81, closed max DD 19.2R, block-bootstrap p95 DD 28.8R, drop-top-5 mean -0.21R",
+      "in_sample_E2": "TRAIN+VAL: TRAIN -0.11R (n=220 fills), VAL -0.27R (n=74 fills), per STRATEGY_COMPARISON.md",
+      "reports": "docs/research/signal_provider/2026-10-21/STRATEGY_COMPARISON.md"
+    },
+    "purpose": "Benchmark only. Shows what a single early exit gives under the same entry rule. The research reads the candidates' edge over this benchmark as not confirmed out of sample (paired vs TP1 Holm p = 1.0).",
+    "known_gaps": [
+      "Same unresolved items as the other drafts: broker symbol placeholder, unverified account and contract specs, untested edits, undefined MID cost, and the concurrency skip."
+    ],
+    "activation_blockers": [
+      "Not for activation. Listed only so the schema can be checked against a second single-exit shape."
+    ],
+    "audit_warning": "AUDIT WARNING (independent audit, exploratory, 2026-10): the positive OOS mean of this research family comes entirely from signals whose text was edited MORE than 5 minutes after posting (about 25% of signals; 80% of them already had TP1 touched before the edit). Among signals whose text was stable within 5 minutes (about 75%), modeled mean R is NEGATIVE for every tested exit (MID costs, E2: 100% TP1 -0.31R n=283; S_TP4|M0 -0.22R n=225; S_TP4|M5 -0.25R n=225). Original pre-edit levels are unrecoverable, so late edits may embed hindsight. Treat this profile as having NO demonstrated edge; it exists only as a documented, fail-closed research artifact. UPDATE 2026-10-24: a second out-of-sample test (58 signals, 2026-09-24..2026-10-22) gave -0.66R for this exact candidate (E2, MID costs, n=53, CI [-0.79,-0.52]); the earlier +0.20R did not replicate. Use only for an operations test on the demo account, with no profit expectation. See OOS2_AND_LIVE_CROSSCHECK.md."
+  }
+}

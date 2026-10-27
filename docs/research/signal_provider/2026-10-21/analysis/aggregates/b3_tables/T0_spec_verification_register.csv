@@ -1,0 +1,20 @@
+item,b3_assumed_value,status,where_it_matters_in_repo,read_only_way_to_verify
+Account currency,USD,UNVERIFIED,"All money caps (positionSizing cap, daily loss, total risk) are in account currency",ACCOUNT_INFO.currency (PROTOCOL.md ACCOUNT_INFO)
+Account balance / equity,"500 / 1,000 / 5,000 / 10,000 / 50,000 scenarios",UNVERIFIED (scenarios only),Sizing uses info.equity (mt5TradeEngine.ts ~L605-611),"ACCOUNT_INFO.balance, .equity"
+Leverage,"1:100 (base), 1:500, 1:1000",UNVERIFIED,Margin check and post-trade margin level (mt5TradeEngine.ts ~L688-694) via broker OrderCheck,ACCOUNT_INFO.leverage
+Contract size XAUUSD,100 oz per lot,UNVERIFIED (B1 CONTRACT=100 kept),riskPerLot = distance/tickSize*tickValueLoss; implies 100 USD per 1.00 move per lot,SYMBOL_INFO.contract_size
+Tick size,0.01 price units,UNVERIFIED,positionSizing.ts riskPerLot / volumeDecimals,SYMBOL_INFO.tick_size (and point)
+Tick value loss,1.0 account currency per tick per lot,UNVERIFIED,positionSizing.ts riskPerLot (tickValueLoss); mt5TradeEngine falls back to tickValue with a warning if loss value missing,SYMBOL_INFO.tick_value_loss (fallback tick_value)
+Volume min,0.01 lot,UNVERIFIED,computeVolume below-min rule (skip / use_min_if_within_cap),SYMBOL_INFO.volume_min
+Volume step,0.01 lot,UNVERIFIED,roundVolumeDown; fixed_lots must be step aligned,SYMBOL_INFO.volume_step
+Volume max,"100 lot (placeholder; effective cap is min(volumeMax, safety maxLots))",UNVERIFIED,maxVolume in computeVolume,SYMBOL_INFO.volume_max
+Symbol volume limit,0 (no cap) assumed,UNVERIFIED,symbol_volume_limit gate (mt5TradeEngine.ts ~L644-650),SYMBOL_INFO.volume_limit
+Stops level / freeze level,not modelled (B1 uses price-only SL/TP),UNVERIFIED,SL/TP must be outside stops/freeze level or EA returns 5005,"SYMBOL_INFO.stops_level, freeze_level (points)"
+Commission,0 base; 3.5 USD/lot/side (7 round trip) sensitivity,UNVERIFIED,Daily realised-loss gate sums deal profit + commission + swap + fee (mt5TradeEngine.ts ~L652-657); sizing and per-trade risk do not include commission,Deal history (GET_DEALS commission field) after a minimum-size demo fill
+Swap,0 (not modelled),UNVERIFIED,B1 swap=0; realized loss gate includes swap,GET_DEALS.swap
+Margin factor per lot,1.0 (100 oz x price / leverage),UNVERIFIED,Post-trade margin level floor (200%),"ORDER_CHECK response data.margin (read-only, one volume at a time)"
+Spread,"B1 BASE 0; PESS +0.20 total spread, +0.10 slippage, 15 s latency",MODELLED (B1),max_spread_price gate 0.5 (default) mt5TradeEngine ~L576,SYMBOL_INFO.bid/ask over time (read-only quotes)
+Deviation,max 30 points passed to EA as slippage (B3 2 USD adverse stress exceeds this if point=0.01),UNVERIFIED (point size),EA deviation; fills beyond deviation are rejected or requoted,SYMBOL_INFO.point; ORDER_CHECK deviation field
+Hedging account,assumed HEDGING (netting refuses entries),UNVERIFIED,brokerRouter.verifyAccountForMode,ACCOUNT_INFO.margin_mode
+Fill-to-nominal distance,"observed median +0.875 USD, p90 +1.37, max +1.97 (n=67 B1 BASE EQ3 fills); modelled a in {0,1,2}",MODELLED from B1 (Reconstructed),Realised risk above the sized risk (decision reference vs fill),Demo: compare fill price to decision reference (events log)
+Holding horizon for concurrency,24 h and 72 h assumed for all 406 signals; B1 actual close times for fills,MODELLED,Total-risk gate and per-symbol gate,Demo: GET_POSITIONS open times

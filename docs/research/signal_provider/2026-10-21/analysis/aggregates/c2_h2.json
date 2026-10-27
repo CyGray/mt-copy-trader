@@ -1,0 +1,39 @@
+{
+ "cut_low": 0.06927317171894395,
+ "cut_high": 0.1742020069607001,
+ "results": {
+  "TRAIN": {
+   "trend_n": 23,
+   "range_n": 36,
+   "trend_mean": 0.809,
+   "range_mean": 0.175,
+   "diff": 0.634,
+   "ci95": [
+    -1.1,
+    2.6
+   ]
+  },
+  "VALID": {
+   "trend_n": 9,
+   "range_n": 12,
+   "trend_mean": -0.256,
+   "range_mean": 0.136,
+   "diff": -0.392,
+   "ci95": [
+    -2.36,
+    1.77
+   ]
+  },
+  "OOS": {
+   "trend_n": 7,
+   "range_n": 2,
+   "trend_mean": -0.093,
+   "range_mean": -1.014,
+   "diff": 0.921,
+   "ci95": [
+    -0.03,
+    2.81
+   ]
+  }
+ }
+}

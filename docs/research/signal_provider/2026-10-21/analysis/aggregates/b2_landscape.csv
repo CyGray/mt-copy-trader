@@ -1,0 +1,9 @@
+entry,cost,family,n_variants,median_of_variant_means,best_variant,best_mean_R,share_variants_positive,min_n,max_n
+E1,MID,single,8,-0.101,S_TP4|M0,0.3132,0.25,148,178
+E1,MID,multi,110,-0.1209,Q_25x4|M0,-0.0404,0.0,178,178
+E1,MID,close_all,6,-0.1245,CA_Q25_at_TP3|M0,-0.1021,0.0,178,178
+E1,MID,runner,72,-0.1257,RUN3_r40|RUN_T2_4,-0.0921,0.0,178,178
+E2,MID,single,8,-0.1218,S_TP4|M0,0.1967,0.25,233,294
+E2,MID,multi,110,-0.1492,Q_25x4|M3,-0.0665,0.0,294,294
+E2,MID,close_all,6,-0.142,CA_Q25_at_TP3|M0,-0.1153,0.0,294,294
+E2,MID,runner,72,-0.1655,RUN3_r40|RUN_T1_4,-0.1252,0.0,294,294

@@ -1,0 +1,81 @@
+safety,equity0,policy,per_symbol,strategy,taken,skipped,skip_reasons,final_equity,return_pct,max_dd_closed_pct,max_dd_closed_usd,min_closed_equity,median_planned_risk_pct,daily_loss_limit_usd,days_with_daily_limit_breach,win_loss_taken,ruin_50pct,bust_le_0
+DEFAULT,500,pct_0.5,1,EQ3,2,65,"{""volume_below_min"": 65}",492.86,-1.43,1.43,7.14,492.86,0.5,100,0,0/2,False,False
+DEFAULT,500,pct_0.5,3,EQ3,2,65,"{""volume_below_min"": 65}",492.86,-1.43,1.43,7.14,492.86,0.5,100,0,0/2,False,False
+DEFAULT,500,pct_1,1,EQ3,33,34,"{""max_positions_per_symbol"": 1, ""volume_below_min"": 33}",483.96,-3.21,10.86,54.3,445.7,0.811,100,0,5/28,False,False
+DEFAULT,500,pct_1,3,EQ3,33,34,"{""volume_below_min"": 34}",482.15,-3.57,11.22,56.12,443.88,0.814,100,0,5/28,False,False
+DEFAULT,500,money_25,1,EQ3,33,34,"{""max_positions_per_symbol"": 1, ""volume_below_min"": 33}",483.96,-3.21,10.86,54.3,445.7,0.811,100,0,5/28,False,False
+DEFAULT,500,money_25,3,EQ3,33,34,"{""volume_below_min"": 34}",482.15,-3.57,11.22,56.12,443.88,0.814,100,0,5/28,False,False
+DEFAULT,500,lots_0.05,1,EQ3,0,67,"{""risk_exceeds_limit"": 67}",500,0.0,0.0,0.0,500,,100,0,0/0,False,False
+DEFAULT,500,lots_0.05,3,EQ3,0,67,"{""risk_exceeds_limit"": 67}",500,0.0,0.0,0.0,500,,100,0,0/0,False,False
+DEFAULT,1000,pct_0.5,1,EQ3,33,34,"{""max_positions_per_symbol"": 1, ""volume_below_min"": 33}",983.96,-1.6,5.43,54.3,945.7,0.403,100,0,5/28,False,False
+DEFAULT,1000,pct_0.5,3,EQ3,34,33,"{""volume_below_min"": 33}",977.1,-2.29,6.12,61.16,938.84,0.41,100,0,5/29,False,False
+DEFAULT,1000,pct_1,1,EQ3,63,4,"{""max_positions_per_symbol"": 2, ""volume_below_min"": 2}",1027.58,2.76,8.05,80.51,919.49,0.782,100,0,19/44,False,False
+DEFAULT,1000,pct_1,3,EQ3,65,2,"{""volume_below_min"": 2}",1009.6,0.96,9.42,94.23,905.77,0.737,100,0,19/46,False,False
+DEFAULT,1000,money_25,1,EQ3,63,4,"{""max_positions_per_symbol"": 2, ""volume_below_min"": 2}",1027.58,2.76,8.05,80.51,919.49,0.782,100,0,19/44,False,False
+DEFAULT,1000,money_25,3,EQ3,65,2,"{""volume_below_min"": 2}",1009.6,0.96,9.42,94.23,905.77,0.737,100,0,19/46,False,False
+DEFAULT,1000,lots_0.05,1,EQ3,0,67,"{""risk_exceeds_limit"": 67}",1000,0.0,0.0,0.0,1000,,100,0,0/0,False,False
+DEFAULT,1000,lots_0.05,3,EQ3,0,67,"{""risk_exceeds_limit"": 67}",1000,0.0,0.0,0.0,1000,,100,0,0/0,False,False
+DEFAULT,5000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5009.05,0.18,4.92,246.21,4753.79,0.46,100,0,19/46,False,False
+DEFAULT,5000,pct_0.5,3,EQ3,67,0,{},4966.94,-0.66,5.61,280.51,4719.49,0.462,100,0,19/48,False,False
+DEFAULT,5000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5180.42,3.61,8.3,415.22,4584.78,0.95,100,1,21/44,False,False
+DEFAULT,5000,pct_1,3,EQ3,67,0,{},5032.33,0.65,9.5,474.91,4525.09,0.952,100,2,21/46,False,False
+DEFAULT,5000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5036.66,0.73,4.57,228.55,4771.45,0.472,100,0,18/47,False,False
+DEFAULT,5000,money_25,3,EQ3,67,0,{},4973.14,-0.54,5.33,266.28,4733.72,0.476,100,0,18/49,False,False
+DEFAULT,5000,lots_0.05,1,EQ3,64,3,"{""max_positions_per_symbol"": 2, ""risk_exceeds_limit"": 1}",5302.13,6.04,3.77,190.92,4853.06,0.466,100,0,17/47,False,False
+DEFAULT,5000,lots_0.05,3,EQ3,65,2,"{""risk_exceeds_limit"": 2}",5159.86,3.2,3.78,190.92,4835.91,0.461,100,0,16/49,False,False
+DEFAULT,10000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10163.55,1.64,4.32,432.1,9567.9,0.475,100,1,21/44,False,False
+DEFAULT,10000,pct_0.5,3,EQ3,67,0,{},10030.01,0.3,5.04,504.13,9495.87,0.48,100,2,21/46,False,False
+DEFAULT,10000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10175.46,1.75,4.37,436.61,9563.39,0.488,100,1,21/44,False,False
+DEFAULT,10000,pct_1,3,EQ3,67,0,{},10043.24,0.43,5.12,512.07,9487.93,0.493,100,2,21/46,False,False
+DEFAULT,10000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10036.67,0.37,2.29,228.55,9771.45,0.237,100,0,18/47,False,False
+DEFAULT,10000,money_25,3,EQ3,67,0,{},9973.14,-0.27,2.66,266.28,9733.72,0.239,100,0,18/49,False,False
+DEFAULT,10000,lots_0.05,1,EQ3,64,3,"{""max_positions_per_symbol"": 2, ""risk_exceeds_limit"": 1}",10302.13,3.02,1.9,190.92,9853.06,0.241,100,0,17/47,False,False
+DEFAULT,10000,lots_0.05,3,EQ3,66,1,"{""risk_exceeds_limit"": 1}",10259.18,2.59,1.9,190.92,9835.91,0.23,100,0,17/49,False,False
+DEFAULT,50000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",50175.46,0.35,0.87,436.61,49563.39,0.098,100,1,21/44,False,False
+DEFAULT,50000,pct_0.5,3,EQ3,67,0,{},50043.24,0.09,1.02,512.07,49487.93,0.098,100,2,21/46,False,False
+DEFAULT,50000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",50175.46,0.35,0.87,436.61,49563.39,0.098,100,1,21/44,False,False
+DEFAULT,50000,pct_1,3,EQ3,67,0,{},50043.24,0.09,1.02,512.07,49487.93,0.098,100,2,21/46,False,False
+DEFAULT,50000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",50036.66,0.07,0.46,228.55,49771.45,0.048,100,0,18/47,False,False
+DEFAULT,50000,money_25,3,EQ3,67,0,{},49973.13,-0.05,0.53,266.28,49733.72,0.048,100,0,18/49,False,False
+DEFAULT,50000,lots_0.05,1,EQ3,64,3,"{""max_positions_per_symbol"": 2, ""risk_exceeds_limit"": 1}",50302.13,0.6,0.38,190.92,49853.06,0.05,100,0,17/47,False,False
+DEFAULT,50000,lots_0.05,3,EQ3,66,1,"{""risk_exceeds_limit"": 1}",50259.18,0.52,0.38,190.92,49835.91,0.047,100,0,17/49,False,False
+HARD,500,pct_0.5,1,EQ3,2,65,"{""volume_below_min"": 65}",492.86,-1.43,1.43,7.14,492.86,0.5,20000,0,0/2,False,False
+HARD,500,pct_0.5,3,EQ3,2,65,"{""volume_below_min"": 65}",492.86,-1.43,1.43,7.14,492.86,0.5,20000,0,0/2,False,False
+HARD,500,pct_1,1,EQ3,33,34,"{""max_positions_per_symbol"": 1, ""volume_below_min"": 33}",483.96,-3.21,10.86,54.3,445.7,0.811,20000,0,5/28,False,False
+HARD,500,pct_1,3,EQ3,33,34,"{""volume_below_min"": 34}",482.15,-3.57,11.22,56.12,443.88,0.814,20000,0,5/28,False,False
+HARD,500,money_25,1,EQ3,51,16,"{""margin_level_too_low"": 15, ""max_positions_per_symbol"": 1}",730.29,46.06,23.88,145.95,458.92,3.309,20000,0,16/35,False,False
+HARD,500,money_25,3,EQ3,51,16,"{""margin_level_too_low"": 16}",730.29,46.06,23.88,145.95,458.92,3.309,20000,0,16/35,False,False
+HARD,500,lots_0.05,1,EQ3,6,61,"{""margin_level_too_low"": 11, ""risk_exceeds_limit"": 50}",398.29,-20.34,20.34,101.71,398.29,3.649,20000,0,0/6,False,False
+HARD,500,lots_0.05,3,EQ3,6,61,"{""margin_level_too_low"": 11, ""risk_exceeds_limit"": 50}",398.29,-20.34,20.34,101.71,398.29,3.649,20000,0,0/6,False,False
+HARD,1000,pct_0.5,1,EQ3,33,34,"{""max_positions_per_symbol"": 1, ""volume_below_min"": 33}",983.96,-1.6,5.43,54.3,945.7,0.403,20000,0,5/28,False,False
+HARD,1000,pct_0.5,3,EQ3,34,33,"{""volume_below_min"": 33}",977.1,-2.29,6.12,61.16,938.84,0.41,20000,0,5/29,False,False
+HARD,1000,pct_1,1,EQ3,63,4,"{""max_positions_per_symbol"": 2, ""volume_below_min"": 2}",1027.58,2.76,8.05,80.51,919.49,0.782,20000,0,19/44,False,False
+HARD,1000,pct_1,3,EQ3,65,2,"{""volume_below_min"": 2}",1009.6,0.96,9.42,94.23,905.77,0.737,20000,0,19/46,False,False
+HARD,1000,money_25,1,EQ3,64,3,"{""margin_level_too_low"": 1, ""max_positions_per_symbol"": 2}",1051.81,5.18,21.34,213.4,786.6,2.331,20000,0,18/46,False,False
+HARD,1000,money_25,3,EQ3,65,2,"{""margin_level_too_low"": 2}",1026.01,2.6,21.34,213.4,786.6,2.391,20000,0,18/47,False,False
+HARD,1000,lots_0.05,1,EQ3,64,3,"{""max_positions_per_symbol"": 2, ""risk_exceeds_limit"": 1}",1302.13,30.21,17.95,190.92,853.06,2.123,20000,0,17/47,False,False
+HARD,1000,lots_0.05,3,EQ3,65,2,"{""risk_exceeds_limit"": 2}",1159.86,15.99,18.24,190.92,835.91,2.162,20000,0,16/49,False,False
+HARD,5000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5009.05,0.18,4.92,246.21,4753.79,0.46,20000,0,19/46,False,False
+HARD,5000,pct_0.5,3,EQ3,67,0,{},4966.94,-0.66,5.61,280.51,4719.49,0.462,20000,0,19/48,False,False
+HARD,5000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5155.46,3.11,8.3,415.22,4584.78,0.956,20000,0,21/44,False,False
+HARD,5000,pct_1,3,EQ3,67,0,{},5028.18,0.56,9.5,474.91,4525.09,0.953,20000,0,21/46,False,False
+HARD,5000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5036.66,0.73,4.57,228.55,4771.45,0.472,20000,0,18/47,False,False
+HARD,5000,money_25,3,EQ3,67,0,{},4973.14,-0.54,5.33,266.28,4733.72,0.476,20000,0,18/49,False,False
+HARD,5000,lots_0.05,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",5246.83,4.94,3.94,196.83,4803.17,0.471,20000,0,17/48,False,False
+HARD,5000,lots_0.05,3,EQ3,67,0,{},5203.88,4.08,4.28,213.98,4786.02,0.466,20000,0,17/50,False,False
+HARD,10000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10159.4,1.59,4.32,432.1,9567.9,0.476,20000,0,21/44,False,False
+HARD,10000,pct_0.5,3,EQ3,67,0,{},10030.01,0.3,5.04,504.13,9495.87,0.48,20000,0,21/46,False,False
+HARD,10000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10383.45,3.83,8.0,799.83,9200.17,0.978,20000,0,21/44,False,False
+HARD,10000,pct_1,3,EQ3,67,0,{},10151.3,1.51,9.31,930.98,9069.02,0.979,20000,0,21/46,False,False
+HARD,10000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10036.67,0.37,2.29,228.55,9771.45,0.237,20000,0,18/47,False,False
+HARD,10000,money_25,3,EQ3,67,0,{},9973.14,-0.27,2.66,266.28,9733.72,0.239,20000,0,18/49,False,False
+HARD,10000,lots_0.05,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",10246.83,2.47,1.97,196.83,9803.17,0.243,20000,0,17/48,False,False
+HARD,10000,lots_0.05,3,EQ3,67,0,{},10203.88,2.04,2.14,213.98,9786.02,0.231,20000,0,17/50,False,False
+HARD,50000,pct_0.5,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",51074.2,2.15,4.11,2055.5,47944.5,0.496,20000,0,21/44,False,False
+HARD,50000,pct_0.5,3,EQ3,67,0,{},50300.86,0.6,4.86,2430.75,47569.25,0.496,20000,0,21/46,False,False
+HARD,50000,pct_1,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",51792.21,3.58,8.34,4171.41,45828.59,0.995,20000,0,21/44,False,False
+HARD,50000,pct_1,3,EQ3,67,0,{},50478.06,0.96,9.73,4867.24,45132.76,0.996,20000,0,21/46,False,False
+HARD,50000,money_25,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",50036.66,0.07,0.46,228.55,49771.45,0.048,20000,0,18/47,False,False
+HARD,50000,money_25,3,EQ3,67,0,{},49973.13,-0.05,0.53,266.28,49733.72,0.048,20000,0,18/49,False,False
+HARD,50000,lots_0.05,1,EQ3,65,2,"{""max_positions_per_symbol"": 2}",50246.83,0.49,0.39,196.83,49803.17,0.05,20000,0,17/48,False,False
+HARD,50000,lots_0.05,3,EQ3,67,0,{},50203.88,0.41,0.43,213.98,49786.02,0.047,20000,0,17/50,False,False

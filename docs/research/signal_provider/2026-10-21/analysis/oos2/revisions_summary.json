@@ -1,0 +1,16 @@
+{
+ "messages": 375,
+ "revisions": 486,
+ "messages_with_parseable_revision": 58,
+ "signals": 58,
+ "levels_changed_first_vs_final": 31,
+ "first_parseable_is_edit": 39,
+ "final_edit_gt_300s": 19,
+ "skipped_by_120s_gate": 2,
+ "universe_final.csv:rows": 58,
+ "universe_final.csv:clean": 58,
+ "universe_live.csv:rows": 56,
+ "universe_live.csv:clean": 56,
+ "universe_first.csv:rows": 58,
+ "universe_first.csv:clean": 58
+}

@@ -1,0 +1,20 @@
+{
+ "jumps": 687,
+ "reverted50_60s": 384,
+ "reverted_within1_60s": 436,
+ "isolated_spikes": 17,
+ "isolated_spike_reverted": 0,
+ "gap_excluded": 83,
+ "jumps_ge10": 47,
+ "jumps_ge10_rev50": 18,
+ "jump_size_quantiles_p50_p90_p99": [
+  5.829999999999927,
+  8.759999999999309,
+  16.871800000000597
+ ],
+ "reverted50_share": 0.5589519650655022,
+ "reverted1_share": 0.6346433770014556,
+ "isolated_spike_share": 0.024745269286754003,
+ "jumps_ge10_rev50_share": 0.3829787234042553,
+ "missing_hours": 2
+}

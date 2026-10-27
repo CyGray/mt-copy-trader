@@ -1,0 +1,614 @@
+{
+ "tp4_subset": {
+  "MID_E2_noguard OOS": {
+   "S_TP1|M0": [
+    -0.096,
+    73
+   ],
+   "S_TP4|M0": [
+    0.221,
+    68
+   ],
+   "S_TP4|M5": [
+    0.204,
+    68
+   ],
+   "S_TP4FB|M0": [
+    0.23,
+    73
+   ],
+   "Q_25x4|M0": [
+    0.013,
+    73
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.111,
+    68
+   ],
+   "S_TP1 full population": [
+    -0.096,
+    73
+   ],
+   "TP4-subset share of fills": [
+    68,
+    73
+   ]
+  },
+  "MID_E2_noguard TRAIN": {
+   "S_TP1|M0": [
+    -0.106,
+    220
+   ],
+   "S_TP4|M0": [
+    0.356,
+    159
+   ],
+   "S_TP4|M5": [
+    0.186,
+    159
+   ],
+   "S_TP4FB|M0": [
+    0.196,
+    220
+   ],
+   "Q_25x4|M0": [
+    -0.007,
+    220
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.14,
+    159
+   ],
+   "S_TP1 full population": [
+    -0.106,
+    220
+   ],
+   "TP4-subset share of fills": [
+    159,
+    220
+   ]
+  },
+  "MID_E2_noguard VALID": {
+   "S_TP1|M0": [
+    -0.266,
+    74
+   ],
+   "S_TP4|M0": [
+    -0.119,
+    74
+   ],
+   "S_TP4|M5": [
+    -0.075,
+    74
+   ],
+   "S_TP4FB|M0": [
+    -0.119,
+    74
+   ],
+   "Q_25x4|M0": [
+    -0.245,
+    74
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.266,
+    74
+   ],
+   "S_TP1 full population": [
+    -0.266,
+    74
+   ],
+   "TP4-subset share of fills": [
+    74,
+    74
+   ]
+  },
+  "MID_E1_FT OOS": {
+   "S_TP1|M0": [
+    0.074,
+    37
+   ],
+   "S_TP4|M0": [
+    0.186,
+    33
+   ],
+   "S_TP4|M5": [
+    0.193,
+    33
+   ],
+   "S_TP4FB|M0": [
+    0.224,
+    37
+   ],
+   "Q_25x4|M0": [
+    0.139,
+    37
+   ],
+   "S_TP1 on TP4-subset": [
+    0.111,
+    33
+   ],
+   "S_TP1 full population": [
+    0.074,
+    37
+   ],
+   "TP4-subset share of fills": [
+    33,
+    37
+   ]
+  },
+  "MID_E1_FT TRAIN": {
+   "S_TP1|M0": [
+    -0.063,
+    130
+   ],
+   "S_TP4|M0": [
+    0.407,
+    100
+   ],
+   "S_TP4|M5": [
+    0.099,
+    100
+   ],
+   "S_TP4FB|M0": [
+    0.176,
+    130
+   ],
+   "Q_25x4|M0": [
+    -0.002,
+    130
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.07,
+    100
+   ],
+   "S_TP1 full population": [
+    -0.063,
+    130
+   ],
+   "TP4-subset share of fills": [
+    100,
+    130
+   ]
+  },
+  "MID_E1_FT VALID": {
+   "S_TP1|M0": [
+    -0.235,
+    48
+   ],
+   "S_TP4|M0": [
+    0.119,
+    48
+   ],
+   "S_TP4|M5": [
+    0.228,
+    48
+   ],
+   "S_TP4FB|M0": [
+    0.119,
+    48
+   ],
+   "Q_25x4|M0": [
+    -0.143,
+    48
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.235,
+    48
+   ],
+   "S_TP1 full population": [
+    -0.235,
+    48
+   ],
+   "TP4-subset share of fills": [
+    48,
+    48
+   ]
+  },
+  "BASE_E2_noguard OOS": {
+   "S_TP1|M0": [
+    -0.101,
+    73
+   ],
+   "S_TP4|M0": [
+    0.228,
+    68
+   ],
+   "S_TP4|M5": [
+    0.21,
+    68
+   ],
+   "S_TP4FB|M0": [
+    0.239,
+    73
+   ],
+   "Q_25x4|M0": [
+    0.019,
+    73
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.119,
+    68
+   ],
+   "S_TP1 full population": [
+    -0.101,
+    73
+   ],
+   "TP4-subset share of fills": [
+    68,
+    73
+   ]
+  },
+  "BASE_E2_noguard TRAIN": {
+   "S_TP1|M0": [
+    -0.059,
+    224
+   ],
+   "S_TP4|M0": [
+    0.404,
+    162
+   ],
+   "S_TP4|M5": [
+    0.169,
+    162
+   ],
+   "S_TP4FB|M0": [
+    0.231,
+    224
+   ],
+   "Q_25x4|M0": [
+    0.035,
+    224
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.087,
+    162
+   ],
+   "S_TP1 full population": [
+    -0.059,
+    224
+   ],
+   "TP4-subset share of fills": [
+    162,
+    224
+   ]
+  },
+  "BASE_E2_noguard VALID": {
+   "S_TP1|M0": [
+    -0.256,
+    74
+   ],
+   "S_TP4|M0": [
+    -0.113,
+    74
+   ],
+   "S_TP4|M5": [
+    -0.166,
+    74
+   ],
+   "S_TP4FB|M0": [
+    -0.113,
+    74
+   ],
+   "Q_25x4|M0": [
+    -0.233,
+    74
+   ],
+   "S_TP1 on TP4-subset": [
+    -0.256,
+    74
+   ],
+   "S_TP1 full population": [
+    -0.256,
+    74
+   ],
+   "TP4-subset share of fills": [
+    74,
+    74
+   ]
+  }
+ },
+ "edit_groups_clean_counts": {
+  "never_or_0s": 16,
+  "<=300s": 286,
+  ">300s": 104
+ },
+ "edit_groups": {
+  "MID_E2_noguard never_or_0s": {
+   "n_signals": 16,
+   "filled": 15,
+   "fill_rate": 0.938,
+   "S_TP1|M0": [
+    -0.514,
+    15
+   ],
+   "S_TP4|M0": [
+    -0.0,
+    14
+   ],
+   "S_TP4FB|M0": [
+    -0.069,
+    15
+   ]
+  },
+  "MID_E2_noguard <=300s": {
+   "n_signals": 286,
+   "filled": 269,
+   "fill_rate": 0.941,
+   "S_TP1|M0": [
+    -0.289,
+    269
+   ],
+   "S_TP4|M0": [
+    -0.229,
+    211
+   ],
+   "S_TP4FB|M0": [
+    -0.209,
+    269
+   ]
+  },
+  "MID_E2_noguard >300s": {
+   "n_signals": 104,
+   "filled": 83,
+   "fill_rate": 0.798,
+   "S_TP1|M0": [
+    0.427,
+    83
+   ],
+   "S_TP4|M0": [
+    1.463,
+    76
+   ],
+   "S_TP4FB|M0": [
+    1.305,
+    83
+   ]
+  },
+  "MID_E1_FT never_or_0s": {
+   "n_signals": 16,
+   "filled": 12,
+   "fill_rate": 0.75,
+   "S_TP1|M0": [
+    -0.422,
+    12
+   ],
+   "S_TP4|M0": [
+    0.109,
+    12
+   ],
+   "S_TP4FB|M0": [
+    0.109,
+    12
+   ]
+  },
+  "MID_E1_FT <=300s": {
+   "n_signals": 286,
+   "filled": 150,
+   "fill_rate": 0.524,
+   "S_TP1|M0": [
+    -0.219,
+    150
+   ],
+   "S_TP4|M0": [
+    -0.172,
+    122
+   ],
+   "S_TP4FB|M0": [
+    -0.227,
+    150
+   ]
+  },
+  "MID_E1_FT >300s": {
+   "n_signals": 104,
+   "filled": 53,
+   "fill_rate": 0.51,
+   "S_TP1|M0": [
+    0.4,
+    53
+   ],
+   "S_TP4|M0": [
+    1.536,
+    47
+   ],
+   "S_TP4FB|M0": [
+    1.315,
+    53
+   ]
+  }
+ },
+ "finalists_oos": {
+  "MID_E2_noguard": {
+   "S_TP4|M0": {
+    "n": 68,
+    "mean": 0.221,
+    "p_one_sided_boot": 0.2938,
+    "sd": 3.103,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 1.054
+   },
+   "S_TP4|M5": {
+    "n": 68,
+    "mean": 0.204,
+    "p_one_sided_boot": 0.255,
+    "sd": 2.45,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.832
+   },
+   "Q_25x4|M3": {
+    "n": 73,
+    "mean": -0.065,
+    "p_one_sided_boot": 0.651,
+    "sd": 1.59,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.521
+   },
+   "Q_25x4|M0": {
+    "n": 73,
+    "mean": 0.013,
+    "p_one_sided_boot": 0.4885,
+    "sd": 1.736,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.569
+   },
+   "S_TP3|M0": {
+    "n": 72,
+    "mean": 0.015,
+    "p_one_sided_boot": 0.4843,
+    "sd": 2.187,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.722
+   },
+   "S_TP1|M0": {
+    "n": 73,
+    "mean": -0.096,
+    "p_one_sided_boot": 0.7888,
+    "sd": 1.023,
+    "MDE_R_80pct_power_n": 0.335
+   }
+  },
+  "MID_E1_FT": {
+   "S_TP4|M0": {
+    "n": 33,
+    "mean": 0.186,
+    "p_one_sided_boot": 0.358,
+    "sd": 2.647,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 1.291
+   },
+   "S_TP4|M5": {
+    "n": 33,
+    "mean": 0.193,
+    "p_one_sided_boot": 0.3034,
+    "sd": 1.927,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.94
+   },
+   "Q_25x4|M3": {
+    "n": 37,
+    "mean": 0.067,
+    "p_one_sided_boot": 0.3945,
+    "sd": 1.358,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.625
+   },
+   "Q_25x4|M0": {
+    "n": 37,
+    "mean": 0.139,
+    "p_one_sided_boot": 0.2885,
+    "sd": 1.485,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.684
+   },
+   "S_TP3|M0": {
+    "n": 36,
+    "mean": 0.178,
+    "p_one_sided_boot": 0.305,
+    "sd": 1.995,
+    "holm_p": 1.0,
+    "MDE_R_80pct_power_n": 0.932
+   },
+   "S_TP1|M0": {
+    "n": 37,
+    "mean": 0.074,
+    "p_one_sided_boot": 0.3063,
+    "sd": 0.905,
+    "MDE_R_80pct_power_n": 0.417
+   }
+  }
+ },
+ "status_counts": {
+  "BASE_E1_FT": {
+   "TRAIN:SKIPPED_NO_BAND_TICK": 73,
+   "NONCLEAN:SKIPPED_NO_BAND_TICK": 3,
+   "TRAIN:SKIPPED_GUARD_DIST": 38,
+   "TRAIN:FILLED": 133,
+   "NONCLEAN:FILLED": 4,
+   "NONCLEAN:SKIPPED_GUARD_DIST": 2,
+   "VALID:SKIPPED_NO_BAND_TICK": 22,
+   "VALID:FILLED": 53,
+   "VALID:SKIPPED_GUARD_DIST": 6,
+   "OOS:FILLED": 39,
+   "OOS:SKIPPED_GUARD_DIST": 24,
+   "OOS:SKIPPED_NO_BAND_TICK": 18
+  },
+  "MID_E1_FT": {
+   "TRAIN:SKIPPED_NO_BAND_TICK": 74,
+   "NONCLEAN:SKIPPED_NO_BAND_TICK": 4,
+   "TRAIN:SKIPPED_GUARD_DIST": 40,
+   "TRAIN:FILLED": 130,
+   "NONCLEAN:FILLED": 3,
+   "NONCLEAN:SKIPPED_GUARD_DIST": 2,
+   "VALID:SKIPPED_NO_BAND_TICK": 24,
+   "VALID:FILLED": 48,
+   "VALID:SKIPPED_GUARD_DIST": 9,
+   "OOS:FILLED": 37,
+   "OOS:SKIPPED_GUARD_DIST": 18,
+   "OOS:SKIPPED_NO_BAND_TICK": 26
+  },
+  "BASE_E3_FT": {
+   "TRAIN:SKIPPED_NO_BAND_TICK": 199,
+   "NONCLEAN:SKIPPED_NO_BAND_TICK": 8,
+   "TRAIN:FILLED": 45,
+   "NONCLEAN:FILLED": 1,
+   "VALID:SKIPPED_NO_BAND_TICK": 69,
+   "VALID:FILLED": 12,
+   "OOS:SKIPPED_NO_BAND_TICK": 71,
+   "OOS:FILLED": 10
+  },
+  "MID_E3_FT": {
+   "TRAIN:SKIPPED_NO_BAND_TICK": 191,
+   "NONCLEAN:SKIPPED_NO_BAND_TICK": 7,
+   "TRAIN:FILLED": 53,
+   "NONCLEAN:FILLED": 2,
+   "VALID:SKIPPED_NO_BAND_TICK": 67,
+   "VALID:FILLED": 14,
+   "OOS:SKIPPED_NO_BAND_TICK": 71,
+   "OOS:FILLED": 10
+  },
+  "BASE_E2_noguard": {
+   "TRAIN:PENDING_EXPIRED": 20,
+   "NONCLEAN:SKIPPED_FAVOURABLE_SIDE": 2,
+   "NONCLEAN:PENDING_EXPIRED": 3,
+   "TRAIN:FILLED": 224,
+   "NONCLEAN:FILLED": 4,
+   "VALID:FILLED": 74,
+   "VALID:PENDING_EXPIRED": 6,
+   "VALID:SKIPPED_FAVOURABLE_SIDE": 1,
+   "OOS:FILLED": 73,
+   "OOS:PENDING_EXPIRED": 8
+  },
+  "MID_E2_noguard": {
+   "TRAIN:PENDING_EXPIRED": 23,
+   "NONCLEAN:SKIPPED_FAVOURABLE_SIDE": 1,
+   "NONCLEAN:PENDING_EXPIRED": 3,
+   "TRAIN:FILLED": 220,
+   "NONCLEAN:FILLED": 5,
+   "TRAIN:SKIPPED_FAVOURABLE_SIDE": 1,
+   "VALID:FILLED": 74,
+   "VALID:PENDING_EXPIRED": 6,
+   "VALID:SKIPPED_FAVOURABLE_SIDE": 1,
+   "OOS:FILLED": 73,
+   "OOS:PENDING_EXPIRED": 8
+  }
+ },
+ "mtm_legs": {
+  "MID_E1_FT_noguard|S_TP3|M0|NONCLEAN": 1,
+  "MID_E1_FT_noguard|S_TP4FB|M0|NONCLEAN": 1,
+  "MID_E1_FT_noguard|Q_25x4|M0|NONCLEAN": 1,
+  "BASE_E3_wait60m|S_TP3|M0|NONCLEAN": 1,
+  "BASE_E3_wait60m|S_TP4FB|M0|NONCLEAN": 1,
+  "BASE_E3_wait60m|Q_25x4|M0|NONCLEAN": 1,
+  "MID_E3_wait60m|S_TP3|M0|NONCLEAN": 1,
+  "MID_E3_wait60m|S_TP4FB|M0|NONCLEAN": 1,
+  "MID_E3_wait60m|Q_25x4|M0|NONCLEAN": 1,
+  "MID_E3_wait72h|S_TP3|M0|NONCLEAN": 1,
+  "MID_E3_wait72h|S_TP4FB|M0|NONCLEAN": 1,
+  "MID_E3_wait72h|Q_25x4|M0|NONCLEAN": 1,
+  "MID_E2_shift-60s|S_TP3|M0|NONCLEAN": 1,
+  "MID_E2_shift-60s|S_TP4FB|M0|NONCLEAN": 1,
+  "MID_E2_shift-60s|Q_25x4|M0|NONCLEAN": 1,
+  "MID_E3_FT_shift-60s|S_TP3|M0|NONCLEAN": 1,
+  "MID_E3_FT_shift-60s|S_TP4FB|M0|NONCLEAN": 1,
+  "MID_E3_FT_shift-60s|Q_25x4|M0|NONCLEAN": 1
+ }
+}

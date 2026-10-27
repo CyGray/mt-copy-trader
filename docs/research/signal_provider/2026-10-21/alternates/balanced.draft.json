@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "profile_id": "xauusd-provider-draft-balanced",
+  "name": "DRAFT - NOT APPROVED - EXPERIMENTAL - XAUUSD provider Q_25x4 M0 E2",
+  "description": "Balanced experimental ALTERNATE from the 2026-10-21 signal-provider research: 25/25/25/25 split across TP1-TP4, no break-even, original stop, 0.5% risk. UNAPPROVED research draft with NO demonstrated positive expectancy (OOS E2 mean +0.00R, 95% CI spans zero). Must not be activated without owner review and explicit authorization. Demo or paper use only. See recommendations.audit_warning: edit-timing audit found no edge on text-stable signals.",
+  "source": {
+    "type": "optimal_report",
+    "report_id": "signal-provider-2026-10-21",
+    "report_date": "2026-10-21",
+    "author": "Claude research run (Haiku 5.5 xhigh subagents, coordinated)",
+    "notes": "Research variant Q_25x4|M0 under entry model E2 (project pending_at_range). Simulated on Dukascopy XAUUSD ticks, MID cost scenario, clean signals. Broker symbol and account specs unverified."
+  },
+  "broker": "vantage_mt5",
+  "symbols": [
+    {
+      "signal_symbol": "XAUUSD",
+      "broker_symbol": "UNVERIFIED-XAUUSD"
+    }
+  ],
+  "entry": {
+    "policy": "pending_at_range",
+    "market_tolerance_price": 0.5,
+    "pending_expiry_minutes": 60,
+    "allow_market_fallback": false
+  },
+  "sizing": {
+    "mode": "equity_risk_percent",
+    "risk_percent": 0.5,
+    "below_min_volume": "skip"
+  },
+  "take_profit": {
+    "checkpoints": [
+      {
+        "tp_index": 1,
+        "close_percent": 25
+      },
+      {
+        "tp_index": 2,
+        "close_percent": 25
+      },
+      {
+        "tp_index": 3,
+        "close_percent": 25
+      },
+      {
+        "tp_index": 4,
+        "close_percent": 25
+      }
+    ],
+    "missing_tp": "merge_into_last_available",
+    "infeasible_split": "merge_into_next",
+    "broker_tp": "final_checkpoint"
+  },
+  "stop_loss": {
+    "min_distance_price": 2.0,
+    "max_distance_price": 15.0,
+    "after_checkpoint": []
+  },
+  "break_even": {
+    "enabled": false,
+    "trigger": "price_distance",
+    "trigger_value": 4.0,
+    "buffer_price": 0
+  },
+  "trailing": {
+    "enabled": false,
+    "activation": "after_tp_index",
+    "activation_value": 4,
+    "distance_price": 3.0,
+    "step_price": 0.5
+  },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 1.0,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 50,
+    "max_total_risk_percent": 1
+  },
+  "edits": {
+    "before_fill": "apply_sl_tp",
+    "after_fill": "apply_tighten_only",
+    "unparseable_edit": "cancel_pending_only",
+    "explicit_cancel": "cancel_pending_only"
+  },
+  "recommendations": {
+    "status": "unapproved_draft_experimental",
+    "not_executed": "Recommendations are informational and never executed.",
+    "research_basis": {
+      "variant": "Q_25x4|M0: 25% at each of TP1-TP4, original SL (M0), no break-even",
+      "entry_model": "E2 = project pending_at_range",
+      "result_OOS_E2": "n=73, mean +0.00R, 95% CI [-0.37, +0.42], PF 1.01, closed max DD 16.3R, block-bootstrap p95 DD 32.6R, drop-top-5 mean -0.32R",
+      "reports": "docs/research/signal_provider/2026-10-21/STRATEGY_COMPARISON.md"
+    },
+    "sizing_note": "0.5% risk on a 4-way split needs at least 0.04 lots for an exact split. The median 5 USD stop at 0.5% risk gives 0.04 lots from about 4,000 USD equity (research B3). Below that, the split collapses under merge_into_next and fewer checkpoints run than the research variant assumed.",
+    "approximation": "The research split is exact. The runtime merges an undersized checkpoint into the next one and records a warning, so at small volumes this is a different exit schedule. How the research handled infeasible splits is not stated in the files read.",
+    "known_gaps": [
+      "Same unresolved items as the conservative draft: broker symbol placeholder, unverified account and contract specs, untested edits, MID cost definition, and the concurrency skip (max_concurrent_positions 1).",
+      "Spread gate 1.0 is above default safety max_spread_price 0.5. The profile is refused until the owner raises the safety value to at least 1.0."
+    ],
+    "activation_blockers": [
+      "Set symbols[0].broker_symbol to the exact Market Watch name.",
+      "Owner decision on settings/default.safety.max_spread_price (needs at least 1.0 for this profile).",
+      "Verify equity and contract specs. This variant needs at least about 4,000 USD equity to avoid the merge.",
+      "Owner review and explicit authorization to approve and activate."
+    ],
+    "forward_test_advice": "Demo or paper only, with owner authorization. Not preferred over the conservative draft: the research gives no evidence that the split beats a single TP4 exit, and its in-sample and OOS results sit at zero.",
+    "audit_warning": "AUDIT WARNING (independent audit, exploratory, 2026-10): the positive OOS mean of this research family comes entirely from signals whose text was edited MORE than 5 minutes after posting (about 25% of signals; 80% of them already had TP1 touched before the edit). Among signals whose text was stable within 5 minutes (about 75%), modeled mean R is NEGATIVE for every tested exit (MID costs, E2: 100% TP1 -0.31R n=283; S_TP4|M0 -0.22R n=225; S_TP4|M5 -0.25R n=225). Original pre-edit levels are unrecoverable, so late edits may embed hindsight. Treat this profile as having NO demonstrated edge; it exists only as a documented, fail-closed research artifact. UPDATE 2026-10-24: a second out-of-sample test (58 signals, 2026-09-24..2026-10-22) gave -0.66R for this exact candidate (E2, MID costs, n=53, CI [-0.79,-0.52]); the earlier +0.20R did not replicate. Use only for an operations test on the demo account, with no profit expectation. See OOS2_AND_LIVE_CROSSCHECK.md."
+  }
+}

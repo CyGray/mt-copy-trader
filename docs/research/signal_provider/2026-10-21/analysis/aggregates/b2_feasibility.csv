@@ -1,0 +1,71 @@
+allocation,lots,outcome,legs,intact,max_pct_dev,warnings,cps_kept,intended_cps
+D_70_30,0.01,MERGED,1,0,70.0,split_infeasible_merged:tp1,2,2
+D_70_30,0.02,INTACT,2,1,20.0,,1 2,2
+D_70_30,0.03,INTACT,2,1,3.33,,1 2,2
+D_70_30,0.05,INTACT,2,1,10.0,,1 2,2
+D_70_30,0.1,INTACT,2,1,0.0,,1 2,2
+D_50_50,0.01,MERGED,1,0,50.0,split_infeasible_merged:tp1,2,2
+D_50_50,0.02,INTACT,2,1,0.0,,1 2,2
+D_50_50,0.03,INTACT,2,1,16.67,,1 2,2
+D_50_50,0.05,INTACT,2,1,10.0,,1 2,2
+D_50_50,0.1,INTACT,2,1,0.0,,1 2,2
+D_30_70,0.01,MERGED,1,0,30.0,split_infeasible_merged:tp1,2,2
+D_30_70,0.02,MERGED,1,0,30.0,split_infeasible_merged:tp1,2,2
+D_30_70,0.03,MERGED,1,0,30.0,split_infeasible_merged:tp1,2,2
+D_30_70,0.05,INTACT,2,1,10.0,,1 2,2
+D_30_70,0.1,INTACT,2,1,0.0,,1 2,2
+D13_50_50,0.01,MERGED,1,0,50.0,split_infeasible_merged:tp1,3,2
+D13_50_50,0.02,INTACT,2,1,0.0,,1 3,2
+D13_50_50,0.03,INTACT,2,1,16.67,,1 3,2
+D13_50_50,0.05,INTACT,2,1,10.0,,1 3,2
+D13_50_50,0.1,INTACT,2,1,0.0,,1 3,2
+D23_50_50,0.01,MERGED,1,0,50.0,split_infeasible_merged:tp2,3,2
+D23_50_50,0.02,INTACT,2,1,0.0,,2 3,2
+D23_50_50,0.03,INTACT,2,1,16.67,,2 3,2
+D23_50_50,0.05,INTACT,2,1,10.0,,2 3,2
+D23_50_50,0.1,INTACT,2,1,0.0,,2 3,2
+T_50_30_20,0.01,MERGED,1,0,80.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,3,3
+T_50_30_20,0.02,MERGED,2,0,30.0,split_infeasible_merged:tp2,1 3,3
+T_50_30_20,0.03,MERGED,2,0,46.67,split_infeasible_merged:tp2,1 3,3
+T_50_30_20,0.05,INTACT,3,1,20.0,,1 2 3,3
+T_50_30_20,0.1,INTACT,3,1,0.0,,1 2 3,3
+T_40_30_30,0.01,MERGED,1,0,70.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,3,3
+T_40_30_30,0.02,MERGED,2,0,20.0,split_infeasible_merged:tp1,2 3,3
+T_40_30_30,0.03,MERGED,2,0,36.67,split_infeasible_merged:tp2,1 3,3
+T_40_30_30,0.05,INTACT,3,1,10.0,,1 2 3,3
+T_40_30_30,0.1,INTACT,3,1,0.0,,1 2 3,3
+T_33_33_34,0.01,MERGED,1,0,66.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,3,3
+T_33_33_34,0.02,MERGED,2,0,17.0,split_infeasible_merged:tp1,2 3,3
+T_33_33_34,0.03,MERGED,2,0,32.67,split_infeasible_merged:tp1,2 3,3
+T_33_33_34,0.05,INTACT,3,1,26.0,,1 2 3,3
+T_33_33_34,0.1,INTACT,3,1,6.0,,1 2 3,3
+T_20_30_50,0.01,MERGED,1,0,50.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,3,3
+T_20_30_50,0.02,MERGED,2,0,20.0,split_infeasible_merged:tp1,2 3,3
+T_20_30_50,0.03,MERGED,2,0,16.67,split_infeasible_merged:tp1,2 3,3
+T_20_30_50,0.05,INTACT,3,1,10.0,,1 2 3,3
+T_20_30_50,0.1,INTACT,3,1,0.0,,1 2 3,3
+Q_25x4,0.01,MERGED,1,0,75.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2;split_infeasible_merged:tp3,4,4
+Q_25x4,0.02,MERGED,2,0,25.0,split_infeasible_merged:tp1;split_infeasible_merged:tp3,2 4,4
+Q_25x4,0.03,MERGED,2,0,41.67,split_infeasible_merged:tp1;split_infeasible_merged:tp3,2 4,4
+Q_25x4,0.05,INTACT,4,1,15.0,,1 2 3 4,4
+Q_25x4,0.1,INTACT,4,1,15.0,,1 2 3 4,4
+CA_T33_at_TP2,0.01,MERGED,1,0,67.0,split_infeasible_merged:tp1,2,2
+CA_T33_at_TP2,0.02,MERGED,1,0,67.0,split_infeasible_merged:tp1,2,2
+CA_T33_at_TP2,0.03,MERGED,1,0,67.0,split_infeasible_merged:tp1,2,2
+CA_T33_at_TP2,0.05,INTACT,2,1,47.0,,1 2,2
+CA_T33_at_TP2,0.1,INTACT,2,1,37.0,,1 2,2
+CA_Q25_at_TP3,0.01,MERGED,1,0,75.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,3,3
+CA_Q25_at_TP3,0.02,MERGED,2,0,25.0,split_infeasible_merged:tp1,2 3,3
+CA_Q25_at_TP3,0.03,MERGED,2,0,41.67,split_infeasible_merged:tp1,2 3,3
+CA_Q25_at_TP3,0.05,INTACT,3,1,35.0,,1 2 3,3
+CA_Q25_at_TP3,0.1,INTACT,3,1,35.0,,1 2 3,3
+RUN2_r20,0.01,MERGED,1,0,0.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2,,2
+RUN2_r20,0.02,MERGED,2,0,10.0,split_infeasible_merged:tp1,2,2
+RUN2_r20,0.03,INTACT,3,1,6.67,,1 2,2
+RUN2_r20,0.05,INTACT,3,1,0.0,,1 2,2
+RUN2_r20,0.1,INTACT,3,1,0.0,,1 2,2
+RUN3_r20,0.01,MERGED,1,0,0.0,split_infeasible_merged:tp1;split_infeasible_merged:tp2;split_infeasible_merged:tp3,,3
+RUN3_r20,0.02,MERGED,2,0,23.33,split_infeasible_merged:tp1;split_infeasible_merged:tp3,2,3
+RUN3_r20,0.03,MERGED,2,0,6.67,split_infeasible_merged:tp1;split_infeasible_merged:tp3,2,3
+RUN3_r20,0.05,INTACT,4,1,6.67,,1 2 3,3
+RUN3_r20,0.1,INTACT,4,1,6.67,,1 2 3,3

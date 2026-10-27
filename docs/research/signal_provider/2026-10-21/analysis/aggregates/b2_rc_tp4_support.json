@@ -1,0 +1,40 @@
+{
+ "E1": {
+  "signals_common": 148,
+  "variants": 196,
+  "rc_vs_zero": {
+   "n_obs": 148,
+   "n_variants": 196,
+   "max_mean_diff": 0.3131626418918921,
+   "p_value": 0.1076
+  },
+  "rc_vs_TP1": {
+   "n_obs": 148,
+   "n_variants": 196,
+   "max_mean_diff": 0.4367836959459462,
+   "p_value": 0.0265
+  },
+  "best_in_support": "S_TP4|M0",
+  "best_mean": 0.3132,
+  "benchmark_mean": -0.1236
+ },
+ "E2": {
+  "signals_common": 233,
+  "variants": 196,
+  "rc_vs_zero": {
+   "n_obs": 233,
+   "n_variants": 196,
+   "max_mean_diff": 0.1966623476394849,
+   "p_value": 0.2184
+  },
+  "rc_vs_TP1": {
+   "n_obs": 233,
+   "n_variants": 196,
+   "max_mean_diff": 0.38204881115879835,
+   "p_value": 0.0387
+  },
+  "best_in_support": "S_TP4|M0",
+  "best_mean": 0.1967,
+  "benchmark_mean": -0.1854
+ }
+}

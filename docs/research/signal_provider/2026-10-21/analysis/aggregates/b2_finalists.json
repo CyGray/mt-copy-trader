@@ -1,0 +1,238 @@
+{
+ "benchmark": "S_TP1|M0",
+ "cost_for_selection": "MID",
+ "entries_optimised": [
+  "E1",
+  "E2"
+ ],
+ "finalists": [
+  {
+   "per_entry": {
+    "E1": {
+     "min_n": 48,
+     "n_train": 100,
+     "n_tv": 148,
+     "n_val": 48,
+     "pooled_mean_R": 0.31316,
+     "train_mean_R": 0.40657,
+     "val_mean_R": 0.11856
+    },
+    "E2": {
+     "min_n": 74,
+     "n_train": 159,
+     "n_tv": 233,
+     "n_val": 74,
+     "pooled_mean_R": 0.19666,
+     "train_mean_R": 0.34613,
+     "val_mean_R": -0.1245
+    }
+   },
+   "score_pooled_TV_mean_R": 0.19666,
+   "variant": "S_TP4|M0"
+  },
+  {
+   "per_entry": {
+    "E1": {
+     "min_n": 48,
+     "n_train": 100,
+     "n_tv": 148,
+     "n_val": 48,
+     "pooled_mean_R": 0.14089,
+     "train_mean_R": 0.09924,
+     "val_mean_R": 0.22766
+    },
+    "E2": {
+     "min_n": 74,
+     "n_train": 159,
+     "n_tv": 233,
+     "n_val": 74,
+     "pooled_mean_R": 0.09777,
+     "train_mean_R": 0.17913,
+     "val_mean_R": -0.07703
+    }
+   },
+   "score_pooled_TV_mean_R": 0.09777,
+   "variant": "S_TP4|M5"
+  },
+  {
+   "per_entry": {
+    "E1": {
+     "min_n": 48,
+     "n_train": 130,
+     "n_tv": 178,
+     "n_val": 48,
+     "pooled_mean_R": -0.0511,
+     "train_mean_R": -0.01921,
+     "val_mean_R": -0.13745
+    },
+    "E2": {
+     "min_n": 74,
+     "n_train": 220,
+     "n_tv": 294,
+     "n_val": 74,
+     "pooled_mean_R": -0.0665,
+     "train_mean_R": -0.00145,
+     "val_mean_R": -0.25989
+    }
+   },
+   "score_pooled_TV_mean_R": -0.0665,
+   "variant": "Q_25x4|M3"
+  },
+  {
+   "per_entry": {
+    "E1": {
+     "min_n": 48,
+     "n_train": 130,
+     "n_tv": 178,
+     "n_val": 48,
+     "pooled_mean_R": -0.04038,
+     "train_mean_R": -0.00238,
+     "val_mean_R": -0.14328
+    },
+    "E2": {
+     "min_n": 74,
+     "n_train": 220,
+     "n_tv": 294,
+     "n_val": 74,
+     "pooled_mean_R": -0.07371,
+     "train_mean_R": -0.01451,
+     "val_mean_R": -0.2497
+    }
+   },
+   "score_pooled_TV_mean_R": -0.07371,
+   "variant": "Q_25x4|M0"
+  },
+  {
+   "per_entry": {
+    "E1": {
+     "min_n": 48,
+     "n_train": 130,
+     "n_tv": 178,
+     "n_val": 48,
+     "pooled_mean_R": -0.086,
+     "train_mean_R": -0.09599,
+     "val_mean_R": -0.05895
+    },
+    "E2": {
+     "min_n": 74,
+     "n_train": 220,
+     "n_tv": 294,
+     "n_val": 74,
+     "pooled_mean_R": -0.05799,
+     "train_mean_R": -0.02642,
+     "val_mean_R": -0.15183
+    }
+   },
+   "score_pooled_TV_mean_R": -0.086,
+   "variant": "S_TP3|M0"
+  }
+ ],
+ "grid_size": 196,
+ "hypotheses_preregistered": [
+  {
+   "id": "H1",
+   "test": "sign of mean R(SELL)-mean R(BUY) positive in TRAIN, VALIDATION and OOS",
+   "text": "SELL trades have higher mean R than BUY trades under the top finalist (E1, MID)."
+  },
+  {
+   "id": "H2",
+   "test": "sign positive in TRAIN, VALIDATION and OOS; tercile cut-points fixed on TRAIN",
+   "text": "Trending regime (prior-4h Kaufman efficiency ratio, top TRAIN tercile) has higher mean R than ranging (bottom tercile) under the top finalist (E1, MID)."
+  }
+ ],
+ "n_scored": 21,
+ "oos_plan": {
+  "E3_reference_descriptive_only": true,
+  "costs": [
+   "BASE",
+   "MID",
+   "PESS"
+  ],
+  "entries": [
+   "E1",
+   "E2"
+  ],
+  "finalists_evaluated_once": 5,
+  "plus_benchmark": 1
+ },
+ "rank_stability": {
+  "E1": {
+   "n_eligible_train": 196,
+   "n_eligible_val": 196,
+   "ranks": {
+    "Q_25x4|M0": {
+     "train": 8,
+     "val": 12
+    },
+    "Q_25x4|M3": {
+     "train": 22,
+     "val": 10
+    },
+    "S_TP3|M0": {
+     "train": 133,
+     "val": 5
+    },
+    "S_TP4|M0": {
+     "train": 1,
+     "val": 2
+    },
+    "S_TP4|M5": {
+     "train": 2,
+     "val": 1
+    }
+   }
+  },
+  "E2": {
+   "n_eligible_train": 196,
+   "n_eligible_val": 196,
+   "ranks": {
+    "Q_25x4|M0": {
+     "train": 4,
+     "val": 29
+    },
+    "Q_25x4|M3": {
+     "train": 3,
+     "val": 41
+    },
+    "S_TP3|M0": {
+     "train": 5,
+     "val": 11
+    },
+    "S_TP4|M0": {
+     "train": 1,
+     "val": 5
+    },
+    "S_TP4|M5": {
+     "train": 2,
+     "val": 2
+    }
+   }
+  }
+ },
+ "selection_rule": "S1  TRAIN: eligible if n_train >= 60 fills (determined trades). Shortlist = top 12 by TRAIN mean R for E1,\n      union top 12 by TRAIN mean R for E2.\n  S2  Score(v) = min over {E1,E2} of the pooled TRAIN+VALIDATION mean R (sum R / n), requiring n_val >= 20 for\n      both entries. Finalists = top 5 by Score (ties: larger min n).\n  Benchmark (frozen reference, not a finalist): 100% at TP1 with original SL (S_TP1|M0).",
+ "sha256_of_body": "907790184fd086998e07533102e1e6f8a332c55e5626ef52b0a4d60b63432235",
+ "shortlist": [
+  "D23_50_50|M0",
+  "D23_50_50|M3",
+  "D23_50_50|T2_2.5",
+  "D23_50_50|T2_4",
+  "Q_25x4|M0",
+  "Q_25x4|M1",
+  "Q_25x4|M2",
+  "Q_25x4|M3",
+  "Q_25x4|M4",
+  "Q_25x4|T2_2.5",
+  "RUN3_r20|RUN_T2_2.5",
+  "RUN3_r30|RUN_T2_2.5",
+  "RUN3_r30|RUN_T2_4",
+  "RUN3_r40|RUN_T2_2.5",
+  "RUN3_r40|RUN_T2_4",
+  "S_TP3|M0",
+  "S_TP4|M0",
+  "S_TP4|M5",
+  "T_20_30_50|M0",
+  "T_20_30_50|M3",
+  "T_20_30_50|T2_2.5"
+ ],
+ "trials_total": 1176
+}

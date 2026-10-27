@@ -1,0 +1,5 @@
+population,hold_h,n,open_incl_new_p50,open_p90,open_p99,open_max,same_dir_max,same_dir_p90,share_arrivals_with_overlap_pct
+all_406_clean_assume_fill,24,406,3.0,5.0,7.0,8,8,4.0,78.6
+all_406_clean_assume_fill,72,406,5.0,10.0,17.0,18,14,6.0,93.8
+B1_BASE_EQ3_fills_actual_close,actual,67,1.0,1.0,2.0,2,2,1.0,3.0
+B1_PESS_EQ3_fills_actual_close,actual,73,1.0,1.0,1.2800000000000011,2,1,1.0,1.4

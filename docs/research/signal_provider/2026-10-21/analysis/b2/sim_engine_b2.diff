@@ -1,0 +1,52 @@
+--- ../b1/sim_engine.py	2026-10-23 17:52:36.255282516 +0200
++++ sim_engine_b2.py	2026-10-23 18:16:48.545233850 +0200
+@@ -282,6 +282,34 @@
+             return int(h[p])
+         return None
+ 
++    # [B2 patch] entry-side triggers for pending orders. A BUY_LIMIT fills when Ask' <= limit and a
++    # SELL_LIMIT when Bid' >= limit, i.e. on entry_px (not on exit_px / y as the B1 code did).
++    def _entry_hits(self, ge, level):
++        key = (2 if ge else 3, level)
++        h = self._hits.get(key)
++        if h is None:
++            h = np.flatnonzero(self.entry_px >= level) if ge else np.flatnonzero(self.entry_px <= level)
++            self._hits[key] = h
++        return h
++
++    def first_entry_ge(self, level, start, stop):
++        if start >= stop:
++            return None
++        h = self._entry_hits(True, level)
++        p = int(np.searchsorted(h, start))
++        if p < len(h) and h[p] < stop:
++            return int(h[p])
++        return None
++
++    def first_entry_le(self, level, start, stop):
++        if start >= stop:
++            return None
++        h = self._entry_hits(False, level)
++        p = int(np.searchsorted(h, start))
++        if p < len(h) and h[p] < stop:
++            return int(h[p])
++        return None
++
+     def idx_at(self, t_ms):
+         """First tick index with ms >= t_ms."""
+         return int(np.searchsorted(self.ms, t_ms, 'left'))
+@@ -415,10 +443,12 @@
+     limit = hi if fav > 0 else lo
+     expiry_ms = t_tick + int(round(ep.expiry_min * MIN_MS))
+     stop = mk.idx_at(expiry_ms + 1)
++    # [B2 patch] B1 used first_le/first_ge on y (= fav*exit_px). For SELL that compared -Bid' with a positive
++    # limit and never fired (all 202 SELL pending orders in B1 expired). Trigger on the entry side instead.
+     if fav > 0:
+-        j = mk.first_le(limit, i0 + 1, min(stop, mk.n))
++        j = mk.first_entry_le(limit, i0 + 1, min(stop, mk.n))
+     else:
+-        j = mk.first_ge(limit, i0 + 1, min(stop, mk.n))
++        j = mk.first_entry_ge(limit, i0 + 1, min(stop, mk.n))
+     if j is None:
+         if mk.truncated and expiry_ms >= mk.known_until:
+             return Fill('NO_PRICE_DATA', 'pending_expiry_in_unknown_hour', None, None, 'pending', None,

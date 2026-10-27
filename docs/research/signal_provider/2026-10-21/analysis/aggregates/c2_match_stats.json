@@ -1,0 +1,36 @@
+{
+ "oos": {
+  "BASE E1 filled_both": 150,
+  "fill_time_exact": 930,
+  "fill_px_within_0.01": 930,
+  "R_within_0.01": 930,
+  "MID E1 filled_both": 140,
+  "BASE E2 filled_both": 282,
+  "MID E2 filled_both": 282,
+  "BASE E1 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 6,
+  "MID E1 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 8,
+  "BASE E2 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 10,
+  "MID E2 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 10,
+  "BASE E3 filled_both": 38,
+  "MID E3 filled_both": 38,
+  "BASE E3 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 2,
+  "MID E3 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 2
+ },
+ "trval": {
+  "BASE E2 filled_both": 1068,
+  "fill_time_exact": 3872,
+  "fill_px_within_0.01": 3872,
+  "R_within_0.01": 3872,
+  "BASE E2 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 124,
+  "MID E2 filled_both": 1054,
+  "MID E2 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 122,
+  "BASE E1 filled_both": 678,
+  "BASE E1 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 66,
+  "MID E1 filled_both": 652,
+  "MID E1 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 60,
+  "BASE E3 filled_both": 196,
+  "BASE E3 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 32,
+  "MID E3 filled_both": 224,
+  "MID E3 fill_status_diff (SKIPPED_tp_missing vs FILLED)": 44
+ }
+}

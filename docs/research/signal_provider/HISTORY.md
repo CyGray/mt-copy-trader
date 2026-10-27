@@ -1,0 +1,105 @@
+# Signal-provider research: history
+
+Research record for the XAUUSD Telegram signal provider (channel `-1003271337051`). Newest conclusion first,
+then how we got there. Detailed evidence lives in `2026-10-21/`; the repeatable procedure is the skill
+`.claude/skills/signal-provider-analysis/SKILL.md`.
+
+Nothing here was approved or activated. No broker order, close, restart, deploy, Firestore write, Telegram send,
+`.env` change or profile activation took place in any of these studies.
+
+## 1. Current conclusion (2026-10-26)
+
+**No stable, tradable edge has been shown. Do not trade this provider with real money.**
+
+| Period | Signals | Result | Label |
+|---|---|---|---|
+| 2025-10-30 .. 2026-09-24, train + validation | 325 | Used to pick finalists; nothing distinguishable from zero afterwards | Modeled |
+| Same period, out-of-sample slice | 81 | Conservative draft (single exit at TP4, break-even at +4.0 USD) about +0.20 R, CI spans zero | Modeled |
+| 2026-09-24 .. 2026-10-22, OOS2 (pre-registered) | 58 | **Every frozen strategy negative.** Conservative draft -0.66 R, 95% CI [-0.79, -0.52], n = 53; none reached TP4 (33 stopped out, 20 at break-even) | Modeled |
+
+- The sign flips between periods, so the edge is not stable.
+- Price touched the stop within 72 h in about 95% of OOS2 signals, TP1 in 91%, TP4 in 50%: stops are tight
+  relative to the swings.
+- Only about 16% of signals can be filled strictly at the posted price; about 90% fill with the project's
+  `pending_at_range` policy.
+- Runners, trailing stops, multi-checkpoint splits and the SELL > BUY / trend > range filters did not help.
+- The Conservative draft is an **operations test** for the demo account (order mechanics, sizing, break-even
+  handling), with no profit expectation.
+
+Open: why the early sample looked slightly positive; whether late edits carry information; provider quality
+after 2026-10-22; Vantage commission, margin and in-hours spread.
+
+## 2. Timeline
+
+| Date | Step | Output |
+|---|---|---|
+| 2026-10-21 | Main study. Three parallel investigators (history, live Telegram, market data), then engine + baseline, TP/runner optimiser, Vantage sizing, then profile architect + independent auditor. 415 accepted signals (406 clean), 83.6M Dukascopy ticks | `2026-10-21/*.md`, `execution_profile.draft.json`, `alternates/`, `analysis/` |
+| 2026-10-21 | Finalists frozen by hash before any OOS look; one-time OOS run guarded by a lock file | `analysis/b2/`, `aggregates/b2_finalists.json` |
+| 2026-10-21 | Independent auditor (C2) rebuilt decoder and simulator from the spec; reproduced B2 trades with 0 mismatches and found the edit-timing bias | `RESEARCH_VALIDATION.md` section 6 |
+| 2026-10-24 | Cross-check against the live system: read-only bridge queries (demo account and XAUUSD spec), forwarder journal, Firestore quota diagnosis, review of the `auto-trader` session's v2 deployment | `OOS2_AND_LIVE_CROSSCHECK.md` section 5 |
+| 2026-10-24 | OOS2: pre-registration written before any message text of the period was read (sha256 `073151fa...6702`), then the test | `PREREGISTRATION_OOS2.md`, `OOS2_AND_LIVE_CROSSCHECK.md` |
+| 2026-10-25 | Not research: the AutoTrader was stopped cleanly at 14:02Z and the forwarder stopped at 14:09Z on Telegram `401 AUTH_KEY_UNREGISTERED` (session invalidated). No new signals are received until the owner re-authorises the Telegram session | forwarder journal |
+| 2026-10-26 | Plain-language synthesis for the owner; this history and the skill written | this file, the skill |
+
+## 3. Decisions that shaped the result
+
+1. **Read-only research mode.** Allowed: repo files, local datasets, read-only broker queries, offline analysis,
+   reports and draft configs. Forbidden: orders, closes, restarts, `worker/dist`, `.env*`, profile activation,
+   kill switch, Firestore trading settings, Telegram sends, a second Telegram session.
+2. **Prices come from Dukascopy ticks, not Vantage.** Cost scenarios BASE / MID / PESS stand in for the spread
+   and latency difference. MID is primary.
+3. **Three entry models:** E1 market within 2.0 USD of the range, E2 the project's `pending_at_range`
+   (tolerance 0.5 USD, 60 min), E3 strict market inside the range.
+4. **Freeze then test.** Train and validation choose finalists; the finalist list is hashed and locked before the
+   OOS slice is evaluated, once. Holm correction across the frozen set, White's Reality Check for the search.
+5. **Pre-register the next test.** OOS2 hypotheses H1 to H3 and the decision rules were written first and the
+   file hashed.
+6. **Fail toward "no edge".** A positive point estimate with a CI spanning zero is not an edge.
+
+## 4. Defects and corrections (keep these in mind)
+
+| What | Found by | Resolution |
+|---|---|---|
+| Engine bug: pending-at-range SELL limits never filled (202 / 202 expired) and BUY limits triggered on Bid; the first "49% fill rate" was wrong | B2, confirmed by C2 | Patched `sim_engine_b2.py`; B1 results for that policy withdrawn; market-entry results reproduced exactly |
+| Pending stop-loss move with latency took effect one tick late | B1 unit tests | Fixed |
+| **Edit-timing bias:** signals edited more than 300 s after posting carried the gains (TP4 +1.44 R, n = 76) versus -0.22 R for the rest; the final text may embed hindsight | C2 | Warning in every draft profile. In OOS2 the first-version levels changed R by only about 0.02, so the mechanism is **not confirmed** |
+| Stored Firestore `parsed_ok` comes from the legacy history parser (needs the word "NOW") and rejected all 499 OOS2 revisions | Coordinator | Re-parse with the Python port of `vipSignalParser` (`analysis/a1/parser_port.py`, matched the repo parser on 3,317 / 3,317 records) |
+| Earlier claim that the 120 s age gate skips the profitable group | Coordinator, OOS2 | Withdrawn: the gate would skip only 2 of 58 |
+| "Strict fill 16%" is a first-tick definition | C2 | Reported as definition-dependent; waiting for the band fills 94-98% |
+| "+1 USD adverse fill turns BASE negative" overstated for TP4 | C2 | Corrected |
+| An unnamed "8 provider-claim comparisons" figure could not be traced | C2 | Removed |
+| Free Firestore plan exhausted by AutoTrader polling (`RESOURCE_EXHAUSTED`, 2026-10-22T22:00Z to 10-23T07:00Z and 10-23T18:00Z to 10-24T07:00Z) | Journal review, `gcloud beta billing projects describe` shows billing off | Fail-closed worked (48 `execution_control_fail_closed`, no entries). Owner decision pending: enable billing or lengthen poll intervals |
+
+## 5. Facts established about the environment
+
+- Vantage demo XAUUSD (read via the bridge, 2026-10-24): contract 100 oz, tick value 1 USD, volume min and step
+  0.01, max 100, stops level 20 points (0.20 USD), IOC filling only, market execution, hedging account, leverage
+  1:100, balance about 49,999.51 USD (demo). The spread seen was a stale Friday-close quote (0.35 USD): not
+  representative.
+- About 60% of provider messages (240 of 399) reached the forwarder first as an *edit* event, not a new message.
+  Cause unknown. The engine treats a first-seen edit as a fresh signal.
+- The engine's signal-age gate uses the original `messageDate` (default `max_signal_age_sec` 120).
+- Default `max_spread_price` is 0.5; three of four draft profiles need at least 1.0 to pass default safety.
+- Firestore: free (Spark) plan, about 50k reads and 20k writes a day, reset at Pacific midnight (07:00Z until 2026-11-01).
+
+## 6. What would change the conclusion
+
+- At least 100 further signals recorded with first-seen and final versions (already stored in
+  `telegram_messages`), evaluated with the frozen strategies and pre-registered rules: the skill's
+  **refresh runbook**.
+- A CI for the Conservative draft that sits entirely above zero in two consecutive independent periods.
+- Evidence for the late-edit mechanism from live data (levels published before the move versus after).
+- Real Vantage fills (slippage, commission, in-hours spread) from a demo operations test.
+
+## 7. Where things are
+
+| Item | Path |
+|---|---|
+| Main report and recommendation | `2026-10-21/OPTIMAL_REPORT.md` (see its 2026-10-24 update box) |
+| Data audit | `2026-10-21/SIGNAL_DATA_AUDIT.md` |
+| Performance and comparison tables | `2026-10-21/SIGNAL_PERFORMANCE_REPORT.md`, `STRATEGY_COMPARISON.md` |
+| How it was validated | `2026-10-21/RESEARCH_VALIDATION.md` |
+| OOS2 and live cross-check | `2026-10-21/OOS2_AND_LIVE_CROSSCHECK.md`, `PREREGISTRATION_OOS2.md` |
+| Draft profiles (unapproved) | `2026-10-21/execution_profile.draft.json`, `alternates/` |
+| Scripts, aggregates, setup | `2026-10-21/analysis/` (`setup_workdir.sh`) |
+| Not committed (regenerate) | tick data (about 1 GB), per-trade tables, raw message text, caches |
