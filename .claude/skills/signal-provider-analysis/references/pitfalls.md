@@ -106,3 +106,18 @@ Each item cost real time or nearly produced a wrong conclusion. Check them befor
 - **Public previews can be bulk-repost farms**: count distinct timestamps. 698 posts in 116 timestamps means post
   time is not signal time.
 - **Channel or group?** Use the stored raw message (`Post` true, no `FromID`) before analysing a chat.
+- **"0 signals" may only mean "not in the recorded window".** GAB FX looked signal-free on 1 recorded day and had
+  303 gold signals in its full history. State the window with every count.
+- **Edits after the outcome.** GAB edited 124 of 126 signals (median 25 min after posting), 66 after the trade
+  had ended. Only the final text survives a history fetch, so a replay is a best case for the provider.
+- **Bought engagement and scam funnels.** Views jumping from single digits to thousands overnight, identical
+  reaction counts per emoji, poll voters far below viewers, and "trading bot" deposit offers. Report them as
+  Inferred, from Verified counts.
+- **Tick vs M1 validation needs the same fill minute.** Entering 20 s after the post on ticks but at the next
+  minute's open on M1 bars moves fills by 1 to 3 USD and makes the bars look wrong (50-70% agreement). With the
+  same fill minute: 100% same exit type, ticks 0.2 to 0.5 USD worse per leg (stop slippage).
+- **Tightest trail "wins" = no trend to ride.** If the best trail is the smallest tested, the runner is really a
+  fixed take-profit. Say so instead of calling it a trailing strategy.
+- **Pick on early months, score on later.** The GAB ladder's best case (+1.2 USD per signal over May-Oct) lost
+  in every lot size when the trail was chosen on May-Jul and scored on Aug-Oct.
+- **Go parser `expandShortRange`** turns "4010.5 - 4008" into 44008. Do not feed full-price descending ranges to it.

@@ -1,5 +1,10 @@
 # LUCAS GOLD LEGEND: deep check (second pass, 2026-10-27)
 
+> **Correction 2026-10-28:** statements here that GAB FX posts no signals describe only the 1 day the forwarder
+> had recorded. Its full history has 303 gold signals, and its own May-Oct signals lose money (`REPORT_GAB_LIVE.md`).
+> The owner's ladder plan is in `REPORT_GAB_LADDER.md`; it runs on the demo account since 2026-10-29
+> (`deploy_gab_demo/README.md`).
+
 Owner request: "check Lucas properly; a new parsing pattern is allowed". This pass adds a channel-specific grammar
 for the whole vocabulary (signals, management, entry hits, completions, recap claims), a simulation of
 **following the provider's own instructions as they appear**, an audit of every numeric claim against tick

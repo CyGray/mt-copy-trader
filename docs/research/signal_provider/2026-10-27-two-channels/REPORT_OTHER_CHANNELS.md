@@ -1,5 +1,10 @@
 # Wildcard: every other chat the account receives (2026-10-27)
 
+> **Correction 2026-10-28:** statements here that GAB FX posts no signals describe only the 1 day the forwarder
+> had recorded. Its full history has 303 gold signals, and its own May-Oct signals lose money (`REPORT_GAB_LIVE.md`).
+> The owner's ladder plan is in `REPORT_GAB_LADDER.md`; it runs on the demo account since 2026-10-29
+> (`deploy_gab_demo/README.md`).
+
 Owner authorisation: check other **channels** (not personal chats), first a preliminary "is it a signal channel?"
 check, then a deep analysis where it is. Everything was read-only: the Go store (`mode=ro`), Firestore
 (budgeted, 777 reads in this pass, 779 over the whole study, 0 writes) and public market data. No Telegram connection.

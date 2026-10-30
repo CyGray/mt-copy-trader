@@ -29,6 +29,11 @@ Firestore**; there is no other database or queue.
 > `node_modules/bybit-api` must stay until the v1 rollback window has passed:
 > do not run `npm ci`, `npm prune` or a plain `npm install` on the host before that.
 
+> **Live stack since 2026-10-25: Go, not this Node worker.** The running services are
+> `bytrader-go-{forwarder,executor,web}` from `~/services/bytrader-go` (SQLite state, source **not in git**).
+> The Node `worker/` and Firestore are no longer the execution path. Before changing or operating the live
+> system, read the skill `.claude/skills/bytrader-go-ops/SKILL.md`.
+
 ## Read these first
 
 | Document | Why |
@@ -45,6 +50,8 @@ Firestore**; there is no other database or queue.
 | `docs/project_memory/OPTIMAL_REPORT_SCHEMA.md` | Execution profile format for the manual Optimal Report |
 | `docs/project_memory/VANTAGE_TEST_REPORT.md` | What is verified offline and what is not |
 | `docs/project_memory/VANTAGE_BROKER_ASSUMPTIONS.md` | What the code assumes about Vantage, the safeguard for each, the evidence still needed |
+| skill `.claude/skills/bytrader-go-ops/SKILL.md` | The live Go stack: code location, offline build/test, deploy with backups, settings without an API (`mt5.source_chat_ids`), MT5 EA compile/reload, synthetic end-to-end trade, rollback |
+| skill `.claude/skills/clean-research/SKILL.md` | How to run any research or read-only investigation cleanly: authority check, scratch layout, data coverage, pre-registration, labels, staged-commit checker (`references/commit_check.sh`), close-out |
 | `docs/research/signal_provider/HISTORY.md` + skill `.claude/skills/signal-provider-analysis/SKILL.md` | Signal-provider performance research: conclusions, history, and the repeatable read-only analysis workflow (use it before judging a provider, TP or lot size) |
 
 ## Directory navigation

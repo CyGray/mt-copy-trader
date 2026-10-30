@@ -10,6 +10,9 @@ evidence: `docs/research/signal_provider/2026-10-21/`). Follow it instead of red
 
 ## Ground rules (read first)
 
+Study hygiene (authority, layout, coverage, pre-registration, labels, commit check, close-out) is the
+`clean-research` skill; this skill is the method.
+
 This is **research mode: read-only**. Allowed: repo files, local datasets, read-only broker queries, offline
 analysis, reports, local draft configs, isolated validation scripts. **Forbidden without explicit owner
 authorization:** broker orders (even demo), closing or modifying positions, restarting the forwarder or
@@ -17,7 +20,11 @@ AutoTrader, `npm run build` / `npm ci` / `npm prune` (production `worker/dist` a
 `.env*`, activating a profile, changing the kill switch / execution mode / Firestore trading settings, sending
 Telegram messages, committing secrets or raw message text.
 
-- **Never open a second Telegram session.** The forwarder owns the only one. Live evidence comes from the Go
+- **Never use or copy the forwarder's Telegram session.** Reusing its auth key from a second client risks
+  `AUTH_KEY_DUPLICATED` and kills the forwarder. If the owner authorizes a live read, use a **separate** research
+  session the owner logs in (`2026-10-27-two-channels/analysis/gab/gabread/main.go`: gotd, read-only method
+  allowlist, own session file in the scratch folder) and offer to revoke it afterwards (`gabread logout`).
+  Otherwise the forwarder owns the only session. Live evidence comes from the Go
   forwarder's SQLite store (since 2026-10-25; read with `mode=ro` via `a1/export_go_store.py` of the 2026-10-27
   study), older data from Firestore `telegram_messages` (read) and `journalctl --user -u bytrader-worker`
   (ids, new/edit, timestamps; no text).
@@ -39,7 +46,10 @@ Telegram messages, committing secrets or raw message text.
 | New signals exist since the last test | **Refresh runbook** (`references/refresh-runbook.md`): about 500 Firestore reads, 30 minutes of compute. |
 | New provider, new symbol or a changed engine | **Full study**, phases 1 to 9 below. |
 | New channel, unknown format or instrument | First the data ladder and message classification of the 2026-10-27 study (`docs/research/signal_provider/2026-10-27-two-channels/analysis/README.md`): it may have no signals or no history. Pre-register before reading text. |
-| Turn a result into a profile | Phase 9, then `docs/project_memory/OPTIMAL_REPORT_SCHEMA.md`. |
+| Channel history needed beyond what the forwarder recorded | Owner-authorized live read with the research session (`gabread fetch`), then classify, parse, replay (`2026-10-27-two-channels/REPORT_GAB_LIVE.md`). The forwarder only has messages since the account joined. |
+| Owner proposes their own management (wider stop, fixed-pip ladder, breakeven, trail, lot grid) | Replay engine `analysis/gab/gab_ladder.py` of the 2026-10-27 study: one price path per signal resolves every leg; report per-lot USD, drawdown, the trail curve, a month split and an out-of-sample choice (pick on early months, score on later). Validate the M1 path on ticks with the **same fill minute**. `REPORT_GAB_LADDER.md` is the template. |
+| Turn a result into a profile | Phase 9, then `docs/project_memory/OPTIMAL_REPORT_SCHEMA.md`. Validate against the Go `domain` package too (the live stack is Go). |
+| Owner orders it live on demo | Leave research mode: skill `bytrader-go-ops` (code, deploy, settings, EA, synthetic end-to-end trade, rollback). |
 
 ## Full study (phases)
 
@@ -111,5 +121,5 @@ See `references/pitfalls.md` for details. Short list:
   then B2 / B3 in parallel, then C1 / C2. Give each a written brief with the ground rules above, an output
   directory, and "report gaps, do not fabricate". Re-run a wave's key numbers yourself before quoting them.
 - State any model substitution (the original brief named Opus 5.5; the coordinator was Sonnet 5.5).
-- The `auto-trader` agent-hub session owns deployments of the AutoTrader. Check its work read-only; do not
-  duplicate or undo it.
+- The `auto-trader` agent-hub session owned the Node AutoTrader deployments. Since 2026-10-25 the live stack is
+  Go (`~/services/bytrader-go`); operating it is the `bytrader-go-ops` skill, and only with owner authorization.

@@ -1,5 +1,10 @@
 # GAB FX (channel -1003740937489): data audit and limits
 
+> **Correction 2026-10-28:** statements here that GAB FX posts no signals describe only the 1 day the forwarder
+> had recorded. Its full history has 303 gold signals, and its own May-Oct signals lose money (`REPORT_GAB_LIVE.md`).
+> The owner's ladder plan is in `REPORT_GAB_LADDER.md`; it runs on the demo account since 2026-10-29
+> (`deploy_gab_demo/README.md`).
+
 **Verdict: Unknown, no data. There is nothing to trade: this channel posts no entry signals.** Its own text
 says "SIGNALS ONLY INSIDE CIRCLE", meaning a separate paid group. Pre-registration: `PREREGISTRATION_GABFX.md`
 (sha256 `2ab3fc2bc60217be4f921088ffd8ad5e44d188f1a94c1102181db434c224c42e`). Labels: **Verified** (observed),

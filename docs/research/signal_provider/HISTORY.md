@@ -5,8 +5,21 @@ evidence in `2026-10-21/`) and, from 2026-10-27, GAB FX (`-1003740937489`) and L
 (`-1002371904451`, evidence in `2026-10-27-two-channels/`). Newest conclusion first, then how we got there. The
 repeatable procedure is the skill `.claude/skills/signal-provider-analysis/SKILL.md`.
 
-Nothing here was approved or activated. No broker order, close, restart, deploy, Firestore write, Telegram send,
-`.env` change or profile activation took place in any of these studies.
+Up to 2026-10-28 nothing was approved or activated, and no broker order, close, restart, deploy, Firestore
+write, Telegram send, `.env` change or profile activation took place. **On 2026-10-29 the owner ordered the GAB
+ladder best case live on the Vantage demo account** (section 0a). That deployment is operations, not research:
+`2026-10-27-two-channels/deploy_gab_demo/README.md` and the skill `.claude/skills/bytrader-go-ops/SKILL.md`.
+
+## 0a. GAB FX, full history and the owner's ladder (2026-10-28 / 29)
+
+| Step | Result | Label |
+|---|---|---|
+| Live read of the whole channel (owner-authorized separate research session, read-only allowlist) | 5,231 messages since 2026-02-02; **303 gold signals**. The "0 signals" below was true only for the recorded day | Verified |
+| GAB's own signals, May-Oct (126), posted levels | Losing under every entry and target rule: mean -0.06 to -0.13 R, profit factor 0.63-0.85; worse since July. Main product is a crypto "trading bot" offer that looks like a scam; engagement looks bought; claims are raised by edits | Modeled / Inferred |
+| Owner's ladder: stop widened 80 or 130 pips, 0.01 closed every 100 pips, breakeven at +100, last 0.01 trailing, 1-6 legs | Best: 80 pips, 1 leg, 30-pip trail, +1.2 USD per signal (CI -1.5 to +4.0). Loses in Sep-Oct and in every lot size out of sample. 130 pips and more legs are worse | Modeled |
+| Demo deployment (2026-10-29, owner's order) | Go parser for the GAB template, profile fields `widen_price` / `distance_step_price`, profile `gab-ladder-w80-n1__v1`, executor limited to GAB, mode demo. Fixed a blocker: EA 2.0.0 made every Go demo broker read fail (EA 2.0.1 deployed). A synthetic signal (ids 990000001-2, exclude from results) opened 0.01 with the widened stop | Verified |
+
+Reports: `REPORT_GAB_LIVE.md`, `REPORT_GAB_LADDER.md`. Expected value of the demo run: about zero or negative.
 
 ## 0. Two more channels (2026-10-27): no data yet
 
@@ -62,6 +75,9 @@ after 2026-10-22; Vantage commission, margin and in-hours spread.
 | 2026-10-25 | Not research: the AutoTrader was stopped cleanly at 14:02Z and the forwarder stopped at 14:09Z on Telegram `401 AUTH_KEY_UNREGISTERED` (session invalidated). No new signals are received until the owner re-authorises the Telegram session | forwarder journal |
 | 2026-10-26 | Plain-language synthesis for the owner; this history and the skill written | this file, the skill |
 | 2026-10-27 | Two-channel study (GAB FX, LUCAS GOLD LEGEND): data ladder (Go SQLite store, Firestore count, journals, public previews), pre-registration, new parser for the zone / multi-signal format, symbol-generalised engine (FX), pilot, read-only Vantage specs, independent audit, OWNER_ACTION | `2026-10-27-two-channels/` |
+| 2026-10-28 | GAB FX live full-history read (separate research session), parser for 12 templates, M1 replay validated on ticks, forensics (edits, deletions, hooks, engagement) | `2026-10-27-two-channels/REPORT_GAB_LIVE.md`, `analysis/gab/` |
+| 2026-10-29 | Owner's ladder plan on GAB (widened stop, 100-pip rungs, breakeven, trail, 1-6 legs), out-of-sample trail choice | `REPORT_GAB_LADDER.md` |
+| 2026-10-29 | Ladder best case deployed to the Vantage demo on the owner's order (Go code, EA 2.0.1, settings, synthetic end-to-end trade) | `deploy_gab_demo/README.md` |
 | 2026-10-27 | Second pass: Lucas grammar, live-follower simulation and claims audit; inventory of every stored chat, prelim and deep check of the two other channels; public-preview scrape (bulk reposts, unusable) | `2026-10-27-two-channels/REPORT_LUCAS_DEEP.md`, `REPORT_OTHER_CHANNELS.md` |
 
 ## 3. Decisions that shaped the result
@@ -109,6 +125,11 @@ after 2026-10-22; Vantage commission, margin and in-hours spread.
   so research reads no longer compete with live trading (Inferred from the Go source, 2026-10-27). The Go forwarder
   records every chat not blocked (`telegram.allowed_chat_ids` empty), so a new channel's history starts when the
   account joins it.
+- Go stack operations (2026-10-29): source `~/services/bytrader-go/src` is **not in git**; the executor trades only
+  `settings.mt5.source_chat_ids` (no API; default the VIP channel); one active profile serves all source chats;
+  lifecycle checks every 5 s; Go needs bridge EA >= 2.0.1, and a shell recompile does not reload the EA (restart
+  the terminal). Details: skill `bytrader-go-ops`.
+- The connected Vantage demo is the ~50k account (login ending 961, from `~/projects/ByTrader/.env`).
 - Vantage demo, 2026-10-27T02:25Z (Asian session, market open): XAUUSD spread 0.29 USD; EURUSD 1.4, GBPUSD 1.5,
   USDJPY 1.7 pips; FX contract 100,000, min/step 0.01; USDJPY tick value about 0.634 USD per point.
 

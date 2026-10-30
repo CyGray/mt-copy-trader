@@ -1,0 +1,175 @@
+// gabsetup: one-off, owner-authorized demo setup for the GAB ladder profile (2026-10-29).
+// Mirrors the web handlers (create draft -> approve -> activate, execution mode, kill switch)
+// in one store transaction with the same audit records, and sets settings.mt5.source_chat_ids,
+// which has no API. Dry run unless --apply. Never touches the broker or Telegram.
+package main
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"flag"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/bytrader/bytrader/internal/domain"
+	"github.com/bytrader/bytrader/internal/store"
+)
+
+const actorUID = "agent"
+const actorEmail = "claude-agent (owner-authorized GAB ladder demo)"
+
+func id() string { var b [16]byte; _, _ = rand.Read(b[:]); return hex.EncodeToString(b[:]) }
+
+func obj(v any) map[string]any {
+	if m, ok := v.(map[string]any); ok {
+		return m
+	}
+	return map[string]any{}
+}
+
+func set(root map[string]any, keys []string, value any) {
+	cur := root
+	for _, k := range keys[:len(keys)-1] {
+		next := obj(cur[k])
+		cur[k] = next
+		cur = next
+	}
+	cur[keys[len(keys)-1]] = value
+}
+
+func main() {
+	db := flag.String("db", "", "state.sqlite")
+	profilePath := flag.String("profile", "", "profile JSON")
+	chat := flag.String("chat", "", "source chat id for the executor")
+	mode := flag.String("mode", "demo", "execution mode")
+	apply := flag.Bool("apply", false, "write (default: dry run)")
+	flag.Parse()
+	if *db == "" || *profilePath == "" || *chat == "" || (*mode != "demo" && *mode != "disabled") {
+		fmt.Fprintln(os.Stderr, "usage: gabsetup --db PATH --profile JSON --chat ID [--mode demo|disabled] [--apply]")
+		os.Exit(2)
+	}
+	var profile map[string]any
+	data, err := os.ReadFile(*profilePath)
+	if err == nil {
+		err = json.Unmarshal(data, &profile)
+	}
+	if err != nil {
+		panic(err)
+	}
+	s, err := store.Open(*db)
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+	when := time.Now().UTC().Format("2006-01-02T15:04:05.000Z")
+	docID := fmt.Sprintf("%s__v%v", profile["profile_id"], profile["version"])
+	summary := map[string]any{}
+	errDry := errors.New("dry run")
+	err = s.WithTx(context.Background(), func(tx *store.Tx) error {
+		settings, err := tx.Get("settings", "default")
+		if err != nil {
+			return err
+		}
+		safety := domain.DefaultSafetyLimits
+		if raw := settings["safety"]; raw != nil {
+			checked := domain.ValidateSafetyLimits(raw)
+			if !checked.OK || checked.Value == nil {
+				return fmt.Errorf("stored safety invalid: %+v", checked.Errors)
+			}
+			safety = *checked.Value
+		}
+		validation := domain.ValidateProfile(profile)
+		if !validation.OK || validation.Value == nil {
+			return fmt.Errorf("profile invalid: %+v", validation.Errors)
+		}
+		if issues := domain.ValidateProfileAgainstSafety(*validation.Value, safety); len(issues) > 0 {
+			return fmt.Errorf("profile exceeds safety: %+v", issues)
+		}
+		record := map[string]any{"ok": true, "errors": validation.Errors, "warnings": validation.Warnings, "validated_at": when}
+		execution := obj(settings["execution"])
+		previous, _ := execution["active_profile_doc_id"].(string)
+		doc := store.Document{}
+		for k, v := range profile {
+			doc[k] = v
+		}
+		for k, v := range map[string]any{"status": "active", "validation": record, "created_at": when, "created_by": actorEmail, "created_by_uid": actorUID,
+			"approved_at": when, "approved_by": actorEmail, "approved_by_uid": actorUID, "activated_at": when, "activated_by": actorEmail, "activated_by_uid": actorUID,
+			"updated_at": when, "updated_by": actorEmail} {
+			doc[k] = v
+		}
+		created, err := tx.Create("execution_profiles", docID, doc)
+		if err != nil {
+			return err
+		}
+		if !created {
+			return fmt.Errorf("execution_profiles/%s already exists", docID)
+		}
+		if previous != "" && previous != docID {
+			prev, err := tx.Get("execution_profiles", previous)
+			if err == nil && prev["status"] == "active" {
+				prev["status"], prev["superseded_at"], prev["updated_at"], prev["updated_by"] = "superseded", when, when, actorEmail
+				if err := tx.Put("execution_profiles", previous, prev); err != nil {
+					return err
+				}
+			} else if err != nil && !errors.Is(err, store.ErrNotFound) {
+				return err
+			}
+		}
+		oldMode, oldKill, oldSources := execution["mode"], obj(settings["trading"])["kill_switch"], obj(settings["mt5"])["source_chat_ids"]
+		set(settings, []string{"execution", "active_profile_doc_id"}, docID)
+		set(settings, []string{"execution", "mode"}, *mode)
+		set(settings, []string{"execution", "updated_at"}, when)
+		set(settings, []string{"execution", "updated_by"}, actorEmail)
+		set(settings, []string{"trading", "kill_switch"}, *mode != "demo")
+		set(settings, []string{"mt5", "source_chat_ids"}, []any{*chat})
+		if err := tx.Put("settings", "default", settings); err != nil {
+			return err
+		}
+		audit := func(action string, details map[string]any) error {
+			_, err := tx.Create("admin_audit", id(), store.Document{"action": action, "actor_uid": actorUID, "actor_email": actorEmail, "at": when, "details": details})
+			return err
+		}
+		for _, action := range []string{"create_draft", "approve", "activate"} {
+			entry := store.Document{"action": action, "profile_doc_id": docID, "actor_uid": actorUID, "actor_email": actorEmail, "at": when,
+				"details": map[string]any{"profile_id": profile["profile_id"], "version": profile["version"], "via": "gabsetup"}}
+			details := map[string]any{"profile_doc_id": docID, "profile_id": profile["profile_id"], "version": profile["version"], "via": "gabsetup"}
+			if action == "activate" {
+				entry["previous_active_doc_id"], details["previous_active_doc_id"] = previous, previous
+			}
+			if _, err := tx.Create("execution_profile_audit", id(), entry); err != nil {
+				return err
+			}
+			if err := audit("profile."+action, details); err != nil {
+				return err
+			}
+		}
+		if err := audit("execution.mode", map[string]any{"mode": *mode, "via": "gabsetup"}); err != nil {
+			return err
+		}
+		if err := audit("kill_switch.set", map[string]any{"engaged": *mode != "demo", "via": "gabsetup"}); err != nil {
+			return err
+		}
+		if err := audit("settings.mt5.source_chat_ids", map[string]any{"from": oldSources, "to": []any{*chat}, "via": "gabsetup"}); err != nil {
+			return err
+		}
+		summary = map[string]any{"profile_doc_id": docID, "previous_active": previous, "mode": []any{oldMode, *mode}, "kill_switch": []any{oldKill, *mode != "demo"},
+			"source_chat_ids": []any{oldSources, []any{*chat}}, "warnings": validation.Warnings, "apply": *apply}
+		if !*apply {
+			return errDry
+		}
+		return nil
+	})
+	out, _ := json.MarshalIndent(summary, "", "  ")
+	fmt.Println(string(out))
+	if err != nil && !errors.Is(err, errDry) {
+		fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+	if errors.Is(err, errDry) {
+		fmt.Println("dry run: rolled back, nothing written")
+	}
+}

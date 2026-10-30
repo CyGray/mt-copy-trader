@@ -1,0 +1,52 @@
+// gabsmoke: one synthetic GAB-template signal for an end-to-end demo check (2026-10-29).
+// Parses the text with the production parser and publishes it exactly as the forwarder does.
+// Build: copy to <build copy>/cmd/gabsmoke/main.go, go build, delete the folder (never deploy it).
+package main
+
+import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"flag"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/bytrader/bytrader/internal/domain"
+	"github.com/bytrader/bytrader/internal/store"
+)
+
+func main() {
+	db := flag.String("db", "", "state.sqlite")
+	chat := flag.String("chat", "", "chat id")
+	msg := flag.String("message-id", "", "synthetic message id")
+	ask := flag.Float64("ask", 0, "current ask")
+	flag.Parse()
+	if *db == "" || *chat == "" || *msg == "" || !(*ask > 0) {
+		fmt.Fprintln(os.Stderr, "usage: gabsmoke --db --chat --message-id --ask")
+		os.Exit(2)
+	}
+	a := *ask
+	text := fmt.Sprintf("Gold BUY Now INSTANT📈\n\n@ %.1f - %.1f\n\nTake Profit 1 - %.1f\nTake Profit 2 - %.1f\n\nStoploss - %.1f\n\nsynthetic end-to-end check", a+0.5, a-1, a+5, a+10, a-12)
+	parsed := domain.ParseGoldSignal(text)
+	if !parsed.OK {
+		fmt.Fprintln(os.Stderr, "parse failed:", parsed.Error)
+		os.Exit(1)
+	}
+	sum := sha256.Sum256([]byte(text))
+	hash := hex.EncodeToString(sum[:])
+	now := store.ISO(time.Now())
+	doc := store.Document{"chat_id": *chat, "message_id": *msg, "message_type": "new", "text_hash": hash, "kind": "signal", "signal": parsed.Signal,
+		"message_date": now, "created_at": now, "synthetic": "end-to-end check",
+		"autotrader": store.Document{"status": "pending", "attempts": 0, "next_attempt_at": now, "lease_id": nil, "lease_owner": nil, "lease_expires_at": nil, "updated_at": now}}
+	s, err := store.Open(*db)
+	if err != nil {
+		panic(err)
+	}
+	defer s.Close()
+	id := *chat + "_" + *msg + "_" + hash
+	created, err := s.PublishSignalEvent(context.Background(), id, doc)
+	out, _ := json.Marshal(map[string]any{"event_id": id, "created": created, "signal": parsed.Signal, "err": fmt.Sprint(err)})
+	fmt.Println(string(out))
+}

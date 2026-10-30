@@ -5,6 +5,18 @@ signals at all.**
 
 ## GAB FX (channel -1003740937489)
 
+> **Corrected 2026-10-28 (`REPORT_GAB_LIVE.md`).** A live read of the full history (5,231 messages since
+> 2026-02-02) found **303 gold signals**. "0 signals" was true only for the day the forwarder had recorded.
+> The channel's own May to October signals **lose money** in every replay rule (mean −0.06 to −0.13 R, profit
+> factor 0.63 to 0.85). Its main product is a crypto "trading bot" investment offer that looks like a scam.
+> Verdict unchanged: do not trade it and do not pay it. The text below is the original 2026-10-27 finding.
+>
+> **Owner's ladder plan, 2026-10-29 (`REPORT_GAB_LADDER.md`).** Stop widened by 80 or 130 pips, 0.01 closed every
+> 100 pips, breakeven at +100, last 0.01 trailing. Best case: 80 pips, 1 leg, 30-pip trail, +1.2 USD per signal
+> (range −1.5 to +4.0). It loses on Aug–Oct when the trail is chosen on May–Jul. 130 pips and more legs are worse.
+> Still do not trade it with real money. On the owner's order it runs on the **demo** account since 2026-10-29
+> (`deploy_gab_demo/README.md`).
+
 - **Profitable?** Unknown. The channel posted **no trade signals** in the day we have. Its own posts say the
   signals are only for a paid "circle". What it does post: profit boasts that cannot be checked, sales pitches,
   and a forwarded crypto "trading bot" offer promising USD 300 → 5,500 in 3 days, a typical scam pattern.
@@ -49,7 +61,7 @@ signals at all.**
 |---|---|---|---|---|---|
 | Earlier gold provider (-1003271337051), first out-of-sample test, conservative plan | 68 | +0.20 | -0.33 to +0.80 | Modeled | no edge shown |
 | Same, second out-of-sample test (2026-09-24 .. 10-22) | 53 | **-0.66** | -0.79 to -0.52 | Modeled | losing |
-| GAB FX | **0** | n/a | n/a | Verified (no signals) | Unknown, no data |
+| GAB FX (corrected 10-28: full history) | **286 gold** (May–Oct own: 126) | −0.11 (market TP1, May–Oct) | 0.63 | Modeled | **Not profitable** (`REPORT_GAB_LIVE.md`) |
 | LUCAS GOLD LEGEND, pilot (all at TP1 / provider plan) | **2** | -0.14 / +0.36 | -1.01 to +2.73 (meaningless at n = 2) | Modeled | Unknown, insufficient data |
 | LUCAS, following the provider's live instructions (range over readings and latencies) | 2 | -0.06 to +0.46 | n/a (n = 2) | Modeled | Unknown; live results about break-even |
 | Channel -1004427167750, pilot (all at TP1, E2) | 3 | -0.01 | not meaningful (n = 3) | Modeled | Unknown, insufficient data |

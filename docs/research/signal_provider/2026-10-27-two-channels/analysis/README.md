@@ -63,3 +63,8 @@ on train + validation, freeze `finalists.json` with its sha256, one OOS run. For
 - `a2/fs_fetch_chat.mjs`, `a2/fs_doc_keys.mjs`: budgeted read-only Firestore fetch by chat prefix; field names and
   channel/group flag of one doc.
 - Second-pass aggregates: `aggregates/lucas_followup_summary.json`, `aggregates/other_channels_pilot_summary.json`.
+- `gab/`: GAB FX full-history study (`REPORT_GAB_LIVE.md`) and the owner's ladder replay: `gab_ladder.py` (engine;
+  M1 with three intrabar orders, `--ticks` check), `gab_ladder_report.py`, `gab_ladder_validate.py`
+  (`REPORT_GAB_LADDER.md`). Aggregates: `aggregates/gab_live_m1_h24.json`, `gab_ladder_m1_h120.json`,
+  `gab_ladder_tick_check.json`. Inputs (signals, M1/tick caches) stay in scratch.
+- Demo deployment of the ladder best case on the live Go stack: `../deploy_gab_demo/README.md`.
