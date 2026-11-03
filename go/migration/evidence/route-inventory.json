@@ -1,0 +1,227 @@
+{
+  "pages": [
+    "/",
+    "/admin",
+    "/alerts",
+    "/analytics",
+    "/login",
+    "/logs",
+    "/profiles",
+    "/settings",
+    "/signals",
+    "/telegram",
+    "/trades"
+  ],
+  "page_count": 11,
+  "route_modules": 29,
+  "handler_count": 33,
+  "routes": [
+    {
+      "path": "/api/admin/close-all",
+      "source": "web/src/app/api/admin/close-all/route.ts",
+      "methods": [
+        "POST",
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/ping",
+      "source": "web/src/app/api/admin/ping/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/admin/role",
+      "source": "web/src/app/api/admin/role/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/alerts/[id]",
+      "source": "web/src/app/api/alerts/[id]/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/alerts",
+      "source": "web/src/app/api/alerts/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/execution/kill-switch",
+      "source": "web/src/app/api/execution/kill-switch/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/execution/mode",
+      "source": "web/src/app/api/execution/mode/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/execution/safety",
+      "source": "web/src/app/api/execution/safety/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/execution/status",
+      "source": "web/src/app/api/execution/status/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/profiles/[docId]/activate",
+      "source": "web/src/app/api/profiles/[docId]/activate/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/profiles/[docId]/approve",
+      "source": "web/src/app/api/profiles/[docId]/approve/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/profiles/[docId]/reject",
+      "source": "web/src/app/api/profiles/[docId]/reject/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/profiles/[docId]",
+      "source": "web/src/app/api/profiles/[docId]/route.ts",
+      "methods": [
+        "GET",
+        "PUT"
+      ]
+    },
+    {
+      "path": "/api/profiles/audit",
+      "source": "web/src/app/api/profiles/audit/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/profiles/rollback",
+      "source": "web/src/app/api/profiles/rollback/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/profiles",
+      "source": "web/src/app/api/profiles/route.ts",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/profiles/validate",
+      "source": "web/src/app/api/profiles/validate/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/session",
+      "source": "web/src/app/api/session/route.ts",
+      "methods": [
+        "POST",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "/api/settings",
+      "source": "web/src/app/api/settings/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/signal-events/[id]",
+      "source": "web/src/app/api/signal-events/[id]/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/signal-events",
+      "source": "web/src/app/api/signal-events/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/telegram/logout",
+      "source": "web/src/app/api/telegram/logout/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/telegram/start",
+      "source": "web/src/app/api/telegram/start/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/telegram/status",
+      "source": "web/src/app/api/telegram/status/route.ts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/telegram/verify-otp",
+      "source": "web/src/app/api/telegram/verify-otp/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/telegram/verify-password",
+      "source": "web/src/app/api/telegram/verify-password/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/trades/[id]/resolve",
+      "source": "web/src/app/api/trades/[id]/resolve/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/users/ensure",
+      "source": "web/src/app/api/users/ensure/route.ts",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/worker/health",
+      "source": "web/src/app/api/worker/health/route.ts",
+      "methods": [
+        "GET"
+      ]
+    }
+  ]
+}

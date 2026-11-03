@@ -1,0 +1,21 @@
+{
+  "bridge_disconnected": "Check the MT5 terminal and VantageBridgeEA on the VPS (deploy/MT5_GUI.md). New entries are blocked while the bridge is down; broker-side SL/TP still protect open positions, but partial closes and SL moves are paused.",
+  "terminal_disconnected": "The MT5 terminal reports no broker connection. Check the terminal login and network. Partial closes and SL moves cannot run until it reconnects.",
+  "ea_version_mismatch": "The executor speaks bridge protocol v2. Attach VantageBridgeEA v2 (or roll the worker back) per VANTAGE_EXECUTION_GUIDE.md \u00a717. Keep execution mode disabled until versions match.",
+  "submit_unknown": "An entry order was sent but its outcome is unknown. It is never resent. Check the MT5 terminal for a position or order with the trade set comment; the reconciler resolves it automatically when the bridge answers.",
+  "partial_close_failed": "A partial take-profit could not be closed after its retries. Close the checkpoint volume manually in MT5 if needed, then acknowledge.",
+  "sl_modify_failed": "A stop-loss move (break-even, trailing or after-checkpoint) failed repeatedly. Verify the position stop in MT5; the broker-side SL from the previous move still applies.",
+  "protection_missing": "A filled position could not be confirmed to carry its stop loss. Check the position in MT5 now and set the SL manually if it is missing.",
+  "unknown_position": "A position or order exists at the broker that no trade set owns. The executor never touches it. Decide manually whether to keep or close it.",
+  "reconciliation_failed": "Reconciliation against broker state is failing. Ambiguous orders and stale states are not being resolved. Check the bridge and SQLite.",
+  "firestore_unavailable": "Operational storage is unavailable. New entries are blocked. Check local disk space, file permissions, SQLite integrity and service logs; broker-side stops remain in force.",
+  "config_invalid": "Execution configuration is invalid, so new entries are blocked. Open Settings / Profiles, fix the reported fields, and re-activate a valid profile.",
+  "service_unhealthy": "A ByTrader role stopped reporting a healthy heartbeat. Check the independently supervised Go service and its logs. An offline executor cannot close positions; broker-side stops remain in force.",
+  "signal_dead_letter": "A signal event exhausted its retries and was not executed. Review it under Signals; requeue it only if it is still relevant, or discard it.",
+  "signal_backlog": "Signal events are waiting longer than expected. Check the executor service, the bridge and SQLite.",
+  "signal_publish_failed": "The forwarder could not hand a signal event to SQLite and has spooled it locally; it retries automatically. If this persists, check SQLite access from the forwarder.",
+  "close_all_failed": "Emergency close-all did not close every owned position. Close the remaining positions manually in MT5. The kill switch stays engaged.",
+  "clock_skew": "The MT5 terminal clock (TimeGMT) and the worker clock disagree. New entries are refused until they agree within the limit. Check NTP on the VPS (timedatectl) and the terminal time; see mql5/PROTOCOL.md \"Time bases\".",
+  "correlation_mismatch": "The broker did not keep the order comment the executor uses to recognise its trades. Duplicate protection and SUBMIT_UNKNOWN resolution depend on it. Set execution mode to disabled and read docs/project_memory/VANTAGE_BROKER_ASSUMPTIONS.md (correlation fallback) before trading again.",
+  "mutation_unknown": "Inspect the trade intent and exact broker ticket state. Keep new entries disabled until reconciliation resolves the outcome; never repeat an unresolved broker mutation."
+}

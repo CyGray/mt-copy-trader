@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "profile_id": "gab-ladder-w80-n1",
+  "version": 1,
+  "name": "GAB FX ladder: stop +80 pips, 0.01, BE +100, trail 30",
+  "description": "Demo test of the 2026-10-29 best case (REPORT_GAB_LADDER.md): posted stop widened by 8.00, 0.01 lot, breakeven and a 3.00 trail from +10.00, final target +100.00. Backtest: about +1.2 USD per signal, not significant, negative Aug-Oct.",
+  "source": {
+    "type": "manual",
+    "report_date": "2026-10-29",
+    "author": "claude-agent (owner-authorized GAB ladder demo)",
+    "notes": "docs/research/signal_provider/2026-10-27-two-channels/REPORT_GAB_LADDER.md"
+  },
+  "broker": "vantage_mt5",
+  "symbols": [{ "signal_symbol": "XAUUSD", "broker_symbol": "XAUUSD" }],
+  "entry": { "policy": "market_only", "market_tolerance_price": 10.0, "pending_expiry_minutes": 10, "allow_market_fallback": false },
+  "sizing": { "mode": "fixed_lots", "fixed_lots": 0.01, "below_min_volume": "skip" },
+  "take_profit": {
+    "checkpoints": [{ "tp_index": 10, "close_percent": 100 }],
+    "missing_tp": "skip_trade",
+    "infeasible_split": "skip_trade",
+    "broker_tp": "none",
+    "distance_step_price": 10.0
+  },
+  "stop_loss": { "min_distance_price": 1.0, "max_distance_price": 40.0, "after_checkpoint": [], "widen_price": 8.0 },
+  "break_even": { "enabled": true, "trigger": "price_distance", "trigger_value": 10.0, "buffer_price": 0 },
+  "trailing": { "enabled": true, "activation": "price_distance", "activation_value": 10.0, "distance_price": 3.0, "step_price": 0.1 },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 0.5,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 100,
+    "max_total_risk_percent": 3
+  },
+  "edits": { "before_fill": "ignore", "after_fill": "ignore", "unparseable_edit": "ignore", "explicit_cancel": "ignore" }
+}

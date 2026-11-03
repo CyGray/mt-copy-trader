@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "profile_id": "bills-observation-tp1",
+  "version": 1,
+  "name": "Bills Trading \u2014 unvalidated TP1-only 0.01-lot demo candidate",
+  "description": "DRAFT ONLY. There are no captured Bills Trading messages or Bills-specific backtests. XAUUSD and TP1 are unverified assumptions. Do not activate until parser, symbol, SL and history are validated.",
+  "source": {
+    "type": "manual",
+    "report_date": "2026-11-03",
+    "author": "bytrader maintenance",
+    "notes": "No Bills Trading data available; not a profitability claim"
+  },
+  "broker": "vantage_mt5",
+  "symbols": [
+    {
+      "signal_symbol": "XAUUSD",
+      "broker_symbol": "XAUUSD"
+    }
+  ],
+  "entry": {
+    "policy": "market_only",
+    "market_tolerance_price": 0.5,
+    "pending_expiry_minutes": 10,
+    "allow_market_fallback": false
+  },
+  "sizing": {
+    "mode": "fixed_lots",
+    "fixed_lots": 0.01,
+    "below_min_volume": "skip"
+  },
+  "take_profit": {
+    "checkpoints": [
+      {
+        "tp_index": 1,
+        "close_percent": 100
+      }
+    ],
+    "missing_tp": "skip_trade",
+    "infeasible_split": "skip_trade",
+    "broker_tp": "final_checkpoint"
+  },
+  "stop_loss": {
+    "min_distance_price": 1.0,
+    "max_distance_price": 15.0,
+    "after_checkpoint": []
+  },
+  "break_even": {
+    "enabled": false,
+    "trigger": "price_distance",
+    "trigger_value": 0,
+    "buffer_price": 0
+  },
+  "trailing": {
+    "enabled": false,
+    "activation": "price_distance",
+    "activation_value": 0,
+    "distance_price": 0,
+    "step_price": 0
+  },
+  "limits": {
+    "max_concurrent_positions": 1,
+    "max_positions_per_symbol": 1,
+    "max_spread_price": 0.5,
+    "max_deviation_points": 30,
+    "signal_max_age_sec": 120,
+    "daily_loss_limit_money": 100,
+    "max_total_risk_percent": 3
+  },
+  "edits": {
+    "before_fill": "ignore",
+    "after_fill": "ignore",
+    "unparseable_edit": "ignore",
+    "explicit_cancel": "ignore"
+  }
+}
